@@ -19,7 +19,7 @@ const COLORS = {
   playerGlow: "#00e676",
 };
 
-const CONNECTOR_RADIUS = 5;
+const CONNECTOR_RADIUS = 3.5;
 const GRID_RADIUS = 3;
 const HAND_HEX_SIZE = 52;
 const HAND_SIZE = 3;
@@ -37,7 +37,7 @@ const cells = generateGrid(GRID_RADIUS);
 
 interface PlayerPos { q: number; r: number; connectorId: ConnectorId; }
 
-const placedTiles   = new Map<string, HexagonTile>();
+const placedTiles = new Map<string, HexagonTile>();
 const traveledPaths = new Map<string, Array<[ConnectorId, ConnectorId]>>();
 let playerPos: PlayerPos;
 let hand: HexagonTile[];
@@ -59,7 +59,7 @@ function getOuterConnectors(): PlayerPos[] {
     for (let edge = 0; edge < 6; edge++) {
       const [dq, dr] = EDGE_NEIGHBOR[edge]!;
       if (!isInGrid(cell.q + dq, cell.r + dr)) {
-        result.push({ q: cell.q, r: cell.r, connectorId: (edge * 2)     as ConnectorId });
+        result.push({ q: cell.q, r: cell.r, connectorId: (edge * 2) as ConnectorId });
         result.push({ q: cell.q, r: cell.r, connectorId: (edge * 2 + 1) as ConnectorId });
       }
     }
@@ -204,13 +204,13 @@ function computePreview(): void {
 interface AnimSegment {
   fromX: number; fromY: number;
   ctrlX: number; ctrlY: number;
-  toX:   number; toY:   number;
+  toX: number; toY: number;
 }
 
-let animSegments:  AnimSegment[] | null = null;
-let animStart:     number | null = null;
-let animRafId:     number | null = null;
-let animPlayerXY:  [number, number] | null = null;
+let animSegments: AnimSegment[] | null = null;
+let animStart: number | null = null;
+let animRafId: number | null = null;
+let animPlayerXY: [number, number] | null = null;
 let isAnimating = false;
 
 const ANIM_DURATION = 1500;
@@ -221,31 +221,31 @@ function bezier(t: number, p0: number, p1: number, p2: number): number {
 }
 
 function buildAnimSegments(chain: ChainStep[]): AnimSegment[] {
-  const originX = boardCanvas.width  / 2;
+  const originX = boardCanvas.width / 2;
   const originY = boardCanvas.height / 2;
   return chain.map(step => {
     const [cx, cy] = hexToPixel(step.q, step.r, HEX_SIZE);
     const px = originX + cx;
     const py = originY + cy;
     const [fromX, fromY] = connectorPosition(px, py, HEX_SIZE, step.entry);
-    const [toX,   toY  ] = connectorPosition(px, py, HEX_SIZE, step.exit);
+    const [toX, toY] = connectorPosition(px, py, HEX_SIZE, step.exit);
     return { fromX, fromY, ctrlX: px, ctrlY: py, toX, toY };
   });
 }
 
 function startAnimation(segments: AnimSegment[], onComplete: () => void): void {
   animSegments = segments;
-  isAnimating  = true;
+  isAnimating = true;
 
   function tick(now: number): void {
     if (animStart === null) animStart = now;
     const t = Math.min((now - animStart) / ANIM_DURATION, 1);
 
     const segCount = animSegments!.length;
-    const scaled   = t * segCount;
-    const segIdx   = Math.min(Math.floor(scaled), segCount - 1);
-    const localT   = scaled - segIdx;
-    const seg      = animSegments![segIdx]!;
+    const scaled = t * segCount;
+    const segIdx = Math.min(Math.floor(scaled), segCount - 1);
+    const localT = scaled - segIdx;
+    const seg = animSegments![segIdx]!;
 
     animPlayerXY = [
       bezier(localT, seg.fromX, seg.ctrlX, seg.toX),
@@ -297,6 +297,9 @@ function playTile(): void {
       triggerGameOver();
     } else {
       playerPos = finalPos;
+      // Recompute preview in case the player selected a tile during the animation.
+      // Without this, preview.chain would still reference the old playerPos.
+      if (selectedIndex !== null) computePreview();
       renderBoard();
     }
   });
@@ -338,16 +341,16 @@ function renderBoard(): void {
     const [cx, cy] = hexToPixel(cell.q, cell.r, HEX_SIZE);
     const px = originX + cx;
     const py = originY + cy;
-    const placed   = placedTiles.get(cellKey(cell.q, cell.r));
+    const placed = placedTiles.get(cellKey(cell.q, cell.r));
     const isHovered = !isAnimating && hoveredCell?.q === cell.q && hoveredCell?.r === cell.r;
-    const inChain   = chainKeys.has(cellKey(cell.q, cell.r));
+    const inChain = chainKeys.has(cellKey(cell.q, cell.r));
 
     drawHexShape(boardCtx, px, py, HEX_SIZE,
-      placed    ? COLORS.placedFill :
-      isHovered ? COLORS.hexHover   : COLORS.hexFill,
+      placed ? COLORS.placedFill :
+        isHovered ? COLORS.hexHover : COLORS.hexFill,
       inChain && previewGameOver ? "#e9456088" :
-      inChain                    ? "#53d8fb44" :
-      placed                     ? COLORS.placedStroke : COLORS.hexStroke);
+        inChain ? "#53d8fb44" :
+          placed ? COLORS.placedStroke : COLORS.hexStroke);
 
     if (placed) drawTilePaths(boardCtx, px, py, HEX_SIZE, placed);
 
