@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hexagon Puzzle</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1a1a2e; display: flex; height: 100vh; overflow: hidden; }
+    #hand-panel {
+      width: 200px;
+      flex-shrink: 0;
+      border-right: 1px solid #0f3460;
+    }
+    #board-panel { flex: 1; }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="hand-panel"><canvas id="hand"></canvas></div>
+  <div id="board-panel"><canvas id="game"></canvas></div>
+  <script type="module" src="dist/main.js"></script>
+</body>
+</html>
