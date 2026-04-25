@@ -14,13 +14,86 @@
       font-family: sans-serif;
     }
 
-    #hand-panel {
+    #left-column {
       width: 200px;
       flex-shrink: 0;
       border-right: 1px solid #0f3460;
       display: flex;
       flex-direction: column;
     }
+
+    /* --- Burger menu --- */
+    #left-header {
+      position: relative;
+      flex-shrink: 0;
+      border-bottom: 1px solid #0f3460;
+    }
+
+    #menu-btn {
+      width: 100%;
+      background: none;
+      border: none;
+      color: #a0b8d0;
+      font-size: 13px;
+      padding: 9px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    #menu-btn:hover { background: #1a2a4a; color: #fff; }
+    #menu-btn .burger { font-size: 15px; line-height: 1; }
+    #menu-btn .view-name { flex: 1; text-align: left; }
+
+    #menu-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0; right: 0;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-top: none;
+      z-index: 20;
+    }
+    #menu-dropdown.open { display: block; }
+
+    .menu-item {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      color: #a0b8d0;
+      font-size: 13px;
+      padding: 9px 12px 9px 36px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .menu-item:hover  { background: #1a2a4a; color: #fff; }
+    .menu-item.active { color: #fff; }
+    .menu-item.active::before { content: "✓"; position: absolute; left: 14px; }
+
+    #player-indicator {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      padding: 6px 0 4px;
+      border-bottom: 2px solid transparent;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    /* --- Hand panel --- */
+    #hand-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    #hand-panel.hidden { display: none; }
 
     .hand-slot {
       flex: 1;
@@ -69,6 +142,151 @@
     }
     .btn-play:hover { background: #00e676 !important; color: #1a1a2e !important; }
 
+    /* --- Settings panel --- */
+    #control-panel {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      padding: 14px;
+      color: #a0b8d0;
+      font-size: 12px;
+      overflow-y: auto;
+    }
+    #control-panel.visible { display: flex; }
+
+    .ctrl-label {
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 10px;
+      color: #5a7a9a;
+      margin-bottom: 6px;
+    }
+
+    .count-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .count-btns button {
+      flex: 1;
+      background: #16213e;
+      color: #a0b8d0;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      padding: 4px 0;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .count-btns button:hover  { background: #1f4080; color: #fff; }
+    .count-btns button.active { background: #1f4080; color: #fff; border-color: #4a80c0; }
+
+    .player-color-rows { display: flex; flex-direction: column; gap: 6px; }
+
+    .player-color-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .player-color-row span {
+      width: 24px;
+      font-size: 11px;
+    }
+
+    .ctrl-btn {
+      display: block;
+      width: 100%;
+      background: #16213e;
+      color: #a0b8d0;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      padding: 6px 10px;
+      margin-top: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      text-align: left;
+      transition: background 0.15s, color 0.15s;
+    }
+    .ctrl-btn:hover { background: #1f4080; color: #fff; }
+
+    .ctrl-select {
+      width: 100%;
+      background: #16213e;
+      color: #a0b8d0;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .ctrl-select:focus { outline: none; border-color: #4a80c0; }
+
+    .ctrl-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: #a0b8d0;
+      font-size: 12px;
+      margin-top: 6px;
+      user-select: none;
+    }
+    .ctrl-checkbox input { cursor: pointer; accent-color: #53d8fb; }
+
+    .player-color-row input[type="color"] {
+      width: 32px;
+      height: 22px;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      background: none;
+      cursor: pointer;
+      padding: 1px;
+    }
+
+    /* --- Stats panel --- */
+    #stats-panel {
+      width: 180px;
+      flex-shrink: 0;
+      border-left: 1px solid #0f3460;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      color: #a0b8d0;
+      font-size: 12px;
+      overflow-y: auto;
+    }
+
+    .stats-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #5a7a9a;
+      margin-bottom: 4px;
+    }
+
+    .stat-player { display: flex; flex-direction: column; gap: 4px; }
+
+    .stat-name {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #7a9ab8;
+    }
+    .stat-row span:last-child { color: #c0d8f0; font-variant-numeric: tabular-nums; }
+
+    /* --- Board --- */
     #board-panel { flex: 1; position: relative; }
     #board-panel canvas { display: block; width: 100%; height: 100%; }
 
@@ -91,26 +309,50 @@
       color: #fff;
     }
     .game-over-box h2 { font-size: 2rem; margin-bottom: 24px; letter-spacing: 2px; }
+    .game-over-btns { display: flex; gap: 12px; justify-content: center; }
     .game-over-box button {
-      background: #e94560;
+      background: none;
       color: #fff;
-      border: none;
+      border: 1px solid #e94560;
       border-radius: 6px;
-      padding: 10px 28px;
-      font-size: 1rem;
+      padding: 10px 20px;
+      font-size: 0.9rem;
       cursor: pointer;
+      transition: background 0.15s;
     }
-    .game-over-box button:hover { background: #ff6b8a; }
+    .game-over-box button:hover { background: #e94560; }
+    .game-over-box button.primary { background: #e94560; }
+    .game-over-box button.primary:hover { background: #ff6b8a; border-color: #ff6b8a; }
   </style>
 </head>
 <body>
-  <div id="hand-panel"></div>
+  <div id="left-column">
+    <div id="left-header">
+      <button id="menu-btn">
+        <span class="burger">☰</span>
+        <span class="view-name">Hand</span>
+      </button>
+      <div id="menu-dropdown">
+        <button class="menu-item active" data-view="hand">Hand</button>
+        <button class="menu-item"        data-view="settings">Settings</button>
+      </div>
+    </div>
+    <div id="hand-panel"></div>
+    <div id="control-panel"></div>
+  </div>
+  <div id="stats-panel">
+    <div class="stats-title">Statistics</div>
+    <div id="stats-content"></div>
+  </div>
   <div id="board-panel">
     <canvas id="game"></canvas>
     <div id="game-over">
       <div class="game-over-box">
         <h2>Game Over</h2>
-        <button id="restart-btn">Restart</button>
+        <div class="game-over-btns">
+          <button id="restart-same-btn">Restart this game</button>
+          <button id="restart-new-btn" class="primary">New random game</button>
+        </div>
       </div>
     </div>
   </div>

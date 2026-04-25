@@ -65,13 +65,26 @@ export function connectorPosition(cx: number, cy: number, size: number, id: Conn
   return id % 2 === 0 ? cA : cB;
 }
 
+// Seeded pseudo-random number generator (mulberry32).
+export type Rng = () => number;
+
+export function makeRng(seed: number): Rng {
+  let s = seed >>> 0;
+  return (): number => {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) >>> 0;
+    return ((t ^ (t >>> 14)) >>> 0) / 0x100000000;
+  };
+}
+
 // Returns a tile with a random perfect matching over connectors 0–11.
-export function randomHexagonTile(): HexagonTile {
+export function randomHexagonTile(rng: Rng): HexagonTile {
   const ids: ConnectorId[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
   // Fisher-Yates shuffle
   for (let i = ids.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [ids[i], ids[j]] = [ids[j]!, ids[i]!];
   }
 
