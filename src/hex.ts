@@ -33,7 +33,7 @@ export function edgeConnectors(
   const b = v[(edge + 1) % 6]!;
   const t = 0.25;
   return [
-    [a[0] + (b[0] - a[0]) * t,       a[1] + (b[1] - a[1]) * t],
+    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t],
     [a[0] + (b[0] - a[0]) * (1 - t), a[1] + (b[1] - a[1]) * (1 - t)],
   ];
 }
@@ -65,18 +65,7 @@ export function connectorPosition(cx: number, cy: number, size: number, id: Conn
   return id % 2 === 0 ? cA : cB;
 }
 
-// Seeded pseudo-random number generator (mulberry32).
-export type Rng = () => number;
 
-export function makeRng(seed: number): Rng {
-  let s = seed >>> 0;
-  return (): number => {
-    s = (s + 0x6D2B79F5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) >>> 0;
-    return ((t ^ (t >>> 14)) >>> 0) / 0x100000000;
-  };
-}
 
 // Returns a tile with a random perfect matching over connectors 0–11.
 export function randomHexagonTile(rng: Rng): HexagonTile {
@@ -84,17 +73,17 @@ export function randomHexagonTile(rng: Rng): HexagonTile {
 
   // Fisher-Yates shuffle
   for (let i = ids.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
+    const j = Math.floor(rng.next() * (i + 1));
     [ids[i], ids[j]] = [ids[j]!, ids[i]!];
   }
 
   return {
     paths: [
-      [ids[0]!,  ids[1]!],
-      [ids[2]!,  ids[3]!],
-      [ids[4]!,  ids[5]!],
-      [ids[6]!,  ids[7]!],
-      [ids[8]!,  ids[9]!],
+      [ids[0]!, ids[1]!],
+      [ids[2]!, ids[3]!],
+      [ids[4]!, ids[5]!],
+      [ids[6]!, ids[7]!],
+      [ids[8]!, ids[9]!],
       [ids[10]!, ids[11]!],
     ],
   };
@@ -104,8 +93,8 @@ export function randomHexagonTile(rng: Rng): HexagonTile {
 //   edge 0 → (+1, 0)   edge 1 → (0, +1)   edge 2 → (-1, +1)
 //   edge 3 → (-1, 0)   edge 4 → (0, -1)   edge 5 → (+1, -1)
 export const EDGE_NEIGHBOR: readonly [number, number][] = [
-  [+1,  0], [0, +1], [-1, +1],
-  [-1,  0], [0, -1], [+1, -1],
+  [+1, 0], [0, +1], [-1, +1],
+  [-1, 0], [0, -1], [+1, -1],
 ];
 
 // Given a tile and an entry connector, return the connector at the other end of the path.
@@ -121,7 +110,7 @@ export function followPath(tile: HexagonTile, entry: ConnectorId): ConnectorId {
 // edge e → opposite edge (e+3)%6, and the within-edge index flips (0↔1).
 export function mirrorConnector(id: ConnectorId): ConnectorId {
   const edge = Math.floor(id / 2);
-  const idx  = id % 2;
+  const idx = id % 2;
   return (((edge + 3) % 6) * 2 + (1 - idx)) as ConnectorId;
 }
 

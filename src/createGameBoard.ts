@@ -2,10 +2,9 @@ import type {
   GameBoard, BoardPosition, BoardConnector,
   OuterRimConnector, TileTileConnector, LongMovement,
   Player, TileEntry, ConnectorId,
-  Rng,
 } from "./types.js";
 import type { StandardGameOptions } from "./standardGameOptions.js";
-import { generateGrid, makeRng, randomHexagonTile, mirrorConnector, EDGE_NEIGHBOR } from "./hex.js";
+import { generateGrid, randomHexagonTile, mirrorConnector, EDGE_NEIGHBOR } from "./hex.js";
 
 const DEFAULT_COLORS = ["#00e676", "#ff6b6b", "#ffd93d", "#6bceff", "#c77dff", "#ff9f1c"];
 
@@ -98,7 +97,7 @@ export function createStandardGameBoard(options: StandardGameOptions, rng: Rng):
   }
 
   for (let i = outerRim.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
+    const j = Math.floor(rng.next() * (i + 1));
     [outerRim[i], outerRim[j]] = [outerRim[j]!, outerRim[i]!];
   }
 
