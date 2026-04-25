@@ -175,24 +175,9 @@ export type GameOptions = {
   highlightDeadPaths: boolean;
 };
 
-export type WinningCondition = "LastManStanding" | "MaxDistance" | "MaxVelocity";
-export type OuterConnectors  = "All" | "Reduced";
-
-/** Full options for a standard game setup. Numeric constraints are enforced at runtime. */
-export type StandardGameOptions = {
-  /** Minimum 1. */
-  playerCount:        number;
-  collisionMode:      CollisionMode;
-  highlightDeadPaths: boolean;
-  winningCondition:   WinningCondition;
-  /** Minimum 1. */
-  handSize:           number;
-  /** Minimum 3. */
-  boardSize:          number;
-  outerConnectors:    OuterConnectors;
-};
-
 // ─── GameState ────────────────────────────────────────────────────────────────
+
+export type Rng = () => number;
 
 /**
  * The complete runtime state of a game session.
@@ -203,10 +188,18 @@ export type StandardGameOptions = {
  * - `options` — active game settings (collision rules, display flags, …).
  * - `seed`    — current RNG seed; deterministically reproduces the tile
  *               sequence from this point forward.
+ * - `rng`     — live RNG instance advanced as the game progresses.
  */
+export type CurrentPlayer = {
+  playerIndex:        number;
+  selectedTileIndex:  number | null;
+};
+
 export type GameState = {
-  board:   GameBoard;
-  history: GameBoard[];
-  options: GameOptions;
-  seed:    number;
+  board:         GameBoard;
+  history:       GameBoard[];
+  options:       GameOptions;
+  seed:          number;
+  rng:           Rng;
+  currentPlayer: CurrentPlayer;
 };

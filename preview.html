@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Board Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #1a1a2e;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      font-family: sans-serif;
+      color: #a0b8d0;
+      font-size: 12px;
+    }
+
+    /* ── Left panel ── */
+    #left-panel {
+      width: 240px;
+      flex-shrink: 0;
+      border-right: 1px solid #0f3460;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #panel-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid #0f3460;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #5a7a9a;
+    }
+
+    #options-form {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #5a7a9a;
+    }
+
+    input[type="number"],
+    select {
+      background: #16213e;
+      color: #a0b8d0;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 12px;
+      width: 100%;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #4a80c0;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-row input {
+      cursor: pointer;
+      accent-color: #53d8fb;
+    }
+
+    #seed-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    #seed-row input {
+      flex: 1;
+    }
+
+    #randomise-btn {
+      background: #16213e;
+      color: #5a7a9a;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    #randomise-btn:hover {
+      background: #1f4080;
+      color: #fff;
+    }
+
+    #error-msg {
+      color: #e94560;
+      font-size: 11px;
+      min-height: 16px;
+    }
+
+    #render-btn {
+      width: 100%;
+      background: #e94560;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 9px 0;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 4px;
+    }
+
+    #render-btn:hover {
+      background: #ff6b8a;
+    }
+
+    /* ── Right panel ── */
+    #right-panel {
+      flex: 1;
+      position: relative;
+    }
+
+    #preview-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #empty-hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #2a3a5a;
+      font-size: 13px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="left-panel">
+    <div id="panel-header">Game Options</div>
+    <form id="options-form">
+
+      <div class="field">
+        <label for="playerCount">Players</label>
+        <input type="number" id="playerCount" name="playerCount" value="2" min="1" max="6" />
+      </div>
+
+      <div class="field">
+        <label for="boardSize">Board Size (radius)</label>
+        <input type="number" id="boardSize" name="boardSize" value="3" min="1" max="10" />
+      </div>
+
+      <div class="field">
+        <label for="handSize">Hand Size</label>
+        <input type="number" id="handSize" name="handSize" value="3" min="1" max="5" />
+      </div>
+
+      <div class="field">
+        <label for="collisionMode">Collision</label>
+        <select id="collisionMode" name="collisionMode">
+          <option value="pass">Pass through</option>
+          <option value="die">Both die</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="winningCondition">Winning Condition</label>
+        <select id="winningCondition" name="winningCondition">
+          <option value="LastManStanding">Last Man Standing</option>
+          <option value="MaxDistance">Max Distance</option>
+          <option value="MaxVelocity">Max Velocity</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="outerConnectors">Outer Connectors</label>
+        <select id="outerConnectors" name="outerConnectors">
+          <option value="All">All</option>
+          <option value="Reduced">Reduced</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="checkbox-row">
+          <input type="checkbox" name="highlightDeadPaths" checked />
+          Highlight dead paths
+        </label>
+      </div>
+
+      <div class="field">
+        <label>Seed</label>
+        <div id="seed-row">
+          <input type="number" id="seed-input" placeholder="random" />
+          <button type="button" id="randomise-btn">&#x21BA;</button>
+        </div>
+      </div>
+
+      <div id="error-msg"></div>
+      <button type="button" id="render-btn">Render</button>
+
+    </form>
+  </div>
+
+  <div id="right-panel">
+    <canvas id="preview-canvas"></canvas>
+    <div id="empty-hint">Configure options and click Render</div>
+  </div>
+
+  <script type="module" src="dist/preview.js"></script>
+  <script>
+    document.getElementById("randomise-btn").addEventListener("click", () => {
+      document.getElementById("seed-input").value = "";
+    });
+  </script>
+</body>
+
+</html>
