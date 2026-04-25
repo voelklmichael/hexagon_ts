@@ -9,6 +9,8 @@
 //   Edge 4 → connectors 8, 9   (left)
 //   Edge 5 → connectors 10, 11 (upper-left)
 
+import { StandardGameOptions } from "./standardGameOptions";
+
 export type ConnectorId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
 // A path between two connectors on the same tile.
@@ -63,15 +65,15 @@ export type BoardPosition = {
  * the player from play (dead end).
  */
 export type OuterRimConnector = {
-  kind:     "outer_rim";
+  kind: "outer_rim";
   position: BoardPosition;
 };
 
 /** Standard edge-shared link between two adjacent tiles. */
 export type TileTileConnector = {
   kind: "tile_tile";
-  a:    BoardPosition;
-  b:    BoardPosition;
+  a: BoardPosition;
+  b: BoardPosition;
 };
 
 /**
@@ -81,7 +83,7 @@ export type TileTileConnector = {
 export type Teleporter = {
   kind: "teleporter";
   from: BoardPosition;
-  to:   BoardPosition;
+  to: BoardPosition;
 };
 
 /**
@@ -89,9 +91,9 @@ export type Teleporter = {
  * of path-segments (affects distance statistics and velocity).
  */
 export type LongMovement = {
-  kind:  "long_movement";
-  from:  BoardPosition;
-  to:    BoardPosition;
+  kind: "long_movement";
+  from: BoardPosition;
+  to: BoardPosition;
   steps: number;
 };
 
@@ -107,7 +109,7 @@ export type BoardConnector =
 export type PathStep = {
   coord: TileCoord;
   entry: ConnectorId;
-  exit:  ConnectorId;
+  exit: ConnectorId;
 };
 
 /**
@@ -117,7 +119,7 @@ export type PathStep = {
  */
 export type PlayerHistory = {
   startPosition: BoardPosition;
-  steps:         PathStep[];
+  steps: PathStep[];
 };
 
 // ─── Player ───────────────────────────────────────────────────────────────────
@@ -147,7 +149,7 @@ export type Player = {
 /** One cell in the grid: its coordinate and current tile state. */
 export type TileEntry = {
   coord: TileCoord;
-  tile:  Tile;
+  tile: Tile;
 };
 
 /**
@@ -159,8 +161,8 @@ export type TileEntry = {
  *                  teleporters, and long-movement bridges.
  */
 export type GameBoard = {
-  tiles:      TileEntry[];
-  players:    Player[];
+  tiles: TileEntry[];
+  players: Player[];
   connectors: BoardConnector[];
 };
 
@@ -170,14 +172,12 @@ export type GameBoard = {
 export type CollisionMode = "pass" | "die";
 
 /** Persistent settings that govern how the game is played. */
-export type GameOptions = {
-  collisionMode:      CollisionMode;
-  highlightDeadPaths: boolean;
-};
+export type GameOptions = StandardGameOptions;
 
 // ─── GameState ────────────────────────────────────────────────────────────────
 
-export type Rng = () => number;
+
+
 
 /**
  * The complete runtime state of a game session.
@@ -191,15 +191,15 @@ export type Rng = () => number;
  * - `rng`     — live RNG instance advanced as the game progresses.
  */
 export type CurrentPlayer = {
-  playerIndex:        number;
-  selectedTileIndex:  number | null;
+  playerIndex: number;
+  selectedTileIndex: number | null;
 };
 
 export type GameState = {
-  board:         GameBoard;
-  history:       GameBoard[];
-  options:       GameOptions;
-  seed:          number;
-  rng:           Rng;
+  board: GameBoard;
+  history: GameBoard[];
+  options: GameOptions;
+  seed: number;
+  rng: Rng;
   currentPlayer: CurrentPlayer;
 };

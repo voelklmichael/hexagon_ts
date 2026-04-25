@@ -34,7 +34,7 @@ function render(): void {
     ? (Number(seedInput.value) >>> 0)
     : ((Math.random() * 0x100000000) >>> 0);
   seedInput.value = String(seed);
-  let rng = makeRng(seed)
+  let rng = new Rng(seed);
 
   let board;
   try {
@@ -47,7 +47,7 @@ function render(): void {
   const state: GameState = {
     board,
     history: [],
-    options: { collisionMode: options.collisionMode, highlightDeadPaths: options.highlightDeadPaths },
+    options,
     seed,
     rng,
     currentPlayer: { playerIndex: 0, selectedTileIndex: null },
