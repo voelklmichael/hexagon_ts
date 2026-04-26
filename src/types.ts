@@ -111,6 +111,7 @@ export type PathStep = {
   coord: TileCoord;
   entry: ConnectorId;
   exit: ConnectorId;
+  weight: number;
 };
 
 export type PlayerTurnHistory = {

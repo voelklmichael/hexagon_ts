@@ -24,15 +24,15 @@ function boardLinkAt(
     switch (c.kind) {
       case "outer_rim":
         return c.position.coord.q === coord.q
-            && c.position.coord.r === coord.r
-            && c.position.connectorId === connectorId;
+          && c.position.coord.r === coord.r
+          && c.position.connectorId === connectorId;
       case "tile_tile":
         return (c.a.coord.q === coord.q && c.a.coord.r === coord.r && c.a.connectorId === connectorId)
-            || (c.b.coord.q === coord.q && c.b.coord.r === coord.r && c.b.connectorId === connectorId);
+          || (c.b.coord.q === coord.q && c.b.coord.r === coord.r && c.b.connectorId === connectorId);
       case "teleporter":
       case "long_movement":
         return (c.from.coord.q === coord.q && c.from.coord.r === coord.r && c.from.connectorId === connectorId)
-            || (c.to.coord.q === coord.q && c.to.coord.r === coord.r && c.to.connectorId === connectorId);
+          || (c.to.coord.q === coord.q && c.to.coord.r === coord.r && c.to.connectorId === connectorId);
     }
   });
 }
@@ -43,6 +43,7 @@ function walkPath(
 ): { steps: PathStep[]; finalPosition: BoardPosition | null } {
   const steps: PathStep[] = [];
   let { coord, connectorId } = start;
+  let linkWeight = 0;
 
   while (true) {
     const entry = tileAt(board.tiles, coord);
@@ -55,7 +56,8 @@ function walkPath(
       return { steps, finalPosition: { coord, connectorId } };
     }
 
-    steps.push({ coord, entry: connectorId, exit: exitConnector });
+    steps.push({ coord, entry: connectorId, exit: exitConnector, weight: 1 + linkWeight });
+    linkWeight = 0;
 
     const link = boardLinkAt(board.connectors, coord, exitConnector);
     if (!link || link.kind === "outer_rim") {
@@ -67,12 +69,14 @@ function walkPath(
         ? link.b : link.a;
       coord = next.coord;
       connectorId = next.connectorId;
-    } else {
-      // teleporter or long_movement — follow from→to (or to→from if entering from the other side)
+    } else { // teleporter or long_movement
       const next = link.from.coord.q === coord.q && link.from.coord.r === coord.r && link.from.connectorId === exitConnector
         ? link.to : link.from;
       coord = next.coord;
       connectorId = next.connectorId;
+      if (link.kind === "long_movement") {
+        linkWeight = link.steps;
+      }
     }
   }
 }
@@ -156,17 +160,24 @@ export function playTile(
   const players = board.players.map((p, pi) => {
     if (!p.isAlive) return p;
     const walk = walks[pi]!;
-    if (walk.steps.length === 0) return p;
 
     const deathStep = killStep.get(pi);
-    const steps = deathStep !== undefined ? walk.steps.slice(0, deathStep + 1) : walk.steps;
     const isAlive = walk.finalPosition !== null && deathStep === undefined;
+
+    // If no movement and no change in status, skip update
+    if (walk.steps.length === 0 && isAlive === p.isAlive) return p;
+
+    const steps = deathStep !== undefined ? walk.steps.slice(0, deathStep + 1) : walk.steps;
 
     return {
       ...p,
       isAlive,
       position: walk.finalPosition ?? p.position,
-      history: { ...p.history, turns: [...p.history.turns, { playerIndex, turn, steps }] },
+      history: {
+        ...p.history, turns: steps.length > 0
+          ? [...p.history.turns, { playerIndex, turn, steps }]
+          : p.history.turns
+      },
     };
   });
 

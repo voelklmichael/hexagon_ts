@@ -176,6 +176,7 @@ redoBtn.addEventListener("click", () => {
   syncUndoRedo();
   persistState();
   redrawBoard();
+  renderStats();
   renderHandPanel();
 });
 
@@ -402,6 +403,7 @@ function playSelectedTile(): void {
 
   persistState();
   redrawBoard();
+  renderStats();
   renderHandPanel();
 }
 
@@ -456,7 +458,7 @@ function computeStatistics(board: GameBoard): Statistics {
     let total = 0;
     let maxV = 0;
     for (const t of player.history.turns) {
-      const v = t.steps.length;
+      const v = t.steps.reduce((sum, s) => sum + s.weight, 0);
       total += v;
       if (v > maxV) maxV = v;
     }

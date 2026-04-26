@@ -416,11 +416,54 @@
       position: absolute;
       inset: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #2a3a5a;
-      font-size: 13px;
+      background: rgba(10, 15, 30, 0.85);
+      color: #a0b8d0;
       pointer-events: none;
+      z-index: 10;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .welcome-card {
+      max-width: 440px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7);
+    }
+
+    .welcome-card h2 {
+      color: #53d8fb;
+      margin-bottom: 16px;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .tutorial-list {
+      text-align: left;
+      list-style: none;
+      margin: 20px 0;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .tutorial-list li {
+      margin-bottom: 10px;
+      padding-left: 22px;
+      position: relative;
+    }
+
+    .tutorial-list li::before {
+      content: "→";
+      color: #e94560;
+      position: absolute;
+      left: 0;
+      font-weight: bold;
     }
 
     /* ── Right panel ── */
@@ -745,7 +788,24 @@
   <!-- Center: board -->
   <div id="center-panel">
     <canvas id="preview-canvas"></canvas>
-    <div id="empty-hint">Configure options and click Render</div>
+    <div id="empty-hint">
+      <div class="welcome-card">
+        <h2>Hexagon Path</h2>
+        <p>A strategic path-building game on a hexagonal grid.</p>
+        <ul class="tutorial-list">
+          <li><strong>Objective:</strong> Be the last survivor or cover the greatest distance.</li>
+          <li><strong>Extend:</strong> Play tiles at your current location to extend your path.</li>
+          <li><strong>Navigate:</strong> Avoid hitting the outer rim or other players (if collision is on).</li>
+          <li><strong>Controls:</strong> Select a tile in your Hand, rotate it, and click "Play Tile".</li>
+        </ul>
+        <p style="color: #5a7a9a; margin-top: 20px; font-size: 11px; font-style: italic;">
+          Adjust settings in the Left Panel and click <strong>Start Game</strong> to begin.
+        </p>
+        <div style="color: #3a5a7a; margin-top: 15px; font-size: 9px; border-top: 1px solid #0f3460; padding-top: 10px; line-height: 1.4;">
+          Music by: kornevmusic, starostin, freemusiclab, miromaxmusic, magpiemusic, lightbeatsmusic, alexzavesa. Source: pixabay.com.
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Right panel: JSON / Statistics -->
