@@ -168,6 +168,7 @@ export function playTile(
     if (walk.steps.length === 0 && isAlive === p.isAlive) return p;
 
     const steps = deathStep !== undefined ? walk.steps.slice(0, deathStep + 1) : walk.steps;
+    const isAnimated = steps.some(s => s.coord.q === coord.q && s.coord.r === coord.r);
 
     return {
       ...p,
@@ -175,7 +176,7 @@ export function playTile(
       position: walk.finalPosition ?? p.position,
       history: {
         ...p.history, turns: steps.length > 0
-          ? [...p.history.turns, { playerIndex, turn, steps }]
+          ? [...p.history.turns, { playerIndex, turn, steps, isAnimated }]
           : p.history.turns
       },
     };

@@ -1,5 +1,5 @@
 import type { StandardGameOptions } from "./standardGameOptions.js";
-import type { GameState, GameBoard, Statistics, ConnectorTile, ConnectorId } from "./types.js";
+import type { GameState, GameBoard, Statistics, ConnectorTile, ConnectorId, TileCoord } from "./types.js";
 import { createStandardGameBoard } from "./createGameBoard.js";
 import { renderGameState } from "./renderGameState.js";
 import { Rng } from "./random_number_generator.js";
@@ -143,6 +143,31 @@ let state: GameState | null = null;
 let turn = 0;
 const undoStack: string[] = [];
 const redoStack: string[] = [];
+let animationFrameId: number | null = null;
+let animationStartTime: number | null = null;
+const ANIMATION_DURATION = 1500;
+
+function startAnimation() {
+  animationStartTime = performance.now();
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  animationFrameId = requestAnimationFrame(animate);
+}
+
+function stopAnimation() {
+  animationStartTime = null;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+}
+
+function animate(time: number) {
+  if (!animationStartTime || !state) return;
+  const elapsed = time - animationStartTime;
+  const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+  redrawBoard(progress, turn);
+  if (progress < 1) animationFrameId = requestAnimationFrame(animate);
+}
 
 function syncUndoRedo(): void {
   undoBtn.disabled = undoStack.length === 0;
@@ -157,6 +182,7 @@ function persistState(): void {
 undoBtn.addEventListener("click", () => {
   if (!undoStack.length || !state) return;
   redoStack.push(serializeState(state, turn));
+  stopAnimation();
   const { state: prev, turn: prevTurn } = deserializeSnapshot(undoStack.pop()!);
   state = prev;
   turn = prevTurn;
@@ -170,6 +196,7 @@ undoBtn.addEventListener("click", () => {
 redoBtn.addEventListener("click", () => {
   if (!redoStack.length || !state) return;
   undoStack.push(serializeState(state, turn));
+  stopAnimation();
   const { state: next, turn: nextTurn } = deserializeSnapshot(redoStack.pop()!);
   state = next;
   turn = nextTurn;
@@ -238,18 +265,16 @@ function nextAlivePlayer(players: GameState["board"]["players"], fromIndex: numb
   return -1;
 }
 
-function redrawBoard(): void {
+function redrawBoard(progress: number = 1.0, currentTurn?: number, playedCoord?: TileCoord | null): void {
   if (!state) return;
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
   if (canvas.width === 0 || canvas.height === 0) {
-    requestAnimationFrame(() => redrawBoard());
+    requestAnimationFrame(() => redrawBoard(progress, currentTurn, playedCoord));
     return;
   }
-  console.log("redrawing", canvas.width, canvas.height);
-  renderGameState(state, ctx, canvas.width, canvas.height);
+  renderGameState(state, ctx, canvas.width, canvas.height, progress, currentTurn);
   jsonOutput.textContent = JSON.stringify(state, null, 2);
-  console.log("done");
 }
 
 function rotateTileInHand(pi: number, tileIdx: number, steps: number): void {
@@ -257,6 +282,7 @@ function rotateTileInHand(pi: number, tileIdx: number, steps: number): void {
   state.currentPlayer.selectedTileIndex = tileIdx;
   const player = state.board.players[pi]!;
   const tile = player.hand[tileIdx]!;
+  stopAnimation();
   const shift = (((steps % 6) * 2) + 12) % 12;
   const rotated: ConnectorTile = {
     kind: "connector",
@@ -342,6 +368,7 @@ function renderHandPanel(): void {
 
     card.addEventListener("click", () => {
       if (!state) return;
+      stopAnimation();
       state.currentPlayer.selectedTileIndex = i;
       tileGrid.querySelectorAll<HTMLElement>(".tile-card").forEach((c, idx) => {
         const sel = idx === i;
@@ -383,6 +410,7 @@ function playSelectedTile(): void {
   const { playerIndex, selectedTileIndex } = state.currentPlayer;
   const tile = state.board.players[playerIndex]!.hand[selectedTileIndex]!;
 
+
   turn++;
   const newBoard = playTile(state.board, playerIndex, tile, turn, state.options.collisionMode);
 
@@ -402,7 +430,7 @@ function playSelectedTile(): void {
   state.currentPlayer = { playerIndex: nextIdx === -1 ? playerIndex : nextIdx, selectedTileIndex: null };
 
   persistState();
-  redrawBoard();
+  startAnimation();
   renderStats();
   renderHandPanel();
 }
@@ -470,6 +498,7 @@ function computeStatistics(board: GameBoard): Statistics {
 
 function render(): void {
   errorEl.textContent = "";
+  stopAnimation();
 
   const options = readOptions();
   const seedInput = document.getElementById("seed-input") as HTMLInputElement;
@@ -512,6 +541,7 @@ function render(): void {
 
 function restart(): void {
   if (!state) return;
+  stopAnimation();
 
   const rng = new Rng(state.seed);
   let board;

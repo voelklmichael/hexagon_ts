@@ -118,6 +118,7 @@ export type PlayerTurnHistory = {
   playerIndex: number;
   turn: number;
   steps: PathStep[];
+  isAnimated?: boolean;
 }
 
 /**
