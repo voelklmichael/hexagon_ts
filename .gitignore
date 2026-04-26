@@ -1,3 +1,4 @@
+private_assets/
 node_modules/
 dist/
 *.pdb
