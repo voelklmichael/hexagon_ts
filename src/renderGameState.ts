@@ -1,4 +1,4 @@
-import type { GameState, ConnectorTile, ConnectorId } from "./types.js";
+import type { GameState, ConnectorTile, ConnectorId, TileCoord } from "./types.js";
 import {
   HEX_SIZE, hexVertices, hexToPixel,
   connectorPosition,
@@ -143,6 +143,12 @@ function drawMarker(ctx: CanvasRenderingContext2D, px: number, py: number, color
   ctx.fill();
 }
 
+function interpolateQuadratic(a: [number, number], cp: [number, number], b: [number, number], t: number): [number, number] {
+  const x = (1 - t) * (1 - t) * a[0] + 2 * (1 - t) * t * cp[0] + t * t * b[0];
+  const y = (1 - t) * (1 - t) * a[1] + 2 * (1 - t) * t * cp[1] + t * t * b[1];
+  return [x, y];
+}
+
 function drawLongMovement(
   ctx: CanvasRenderingContext2D,
   originX: number, originY: number,
@@ -196,6 +202,7 @@ export function renderGameState(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
+  animationProgress: number = 1.0,
 ): void {
   const originX = width / 2;
   const originY = height / 2;
@@ -409,29 +416,84 @@ export function renderGameState(
     drawXMarker(ctx, mx, my, (edge * 60 + 30) * (Math.PI / 180), "#e94560");
   }
 
+  const getPixelPos = (q: number, r: number, id: ConnectorId): [number, number] => {
+    const [cx, cy] = hexToPixel(q, r, HEX_SIZE);
+    return connectorPosition(originX + cx, originY + cy, HEX_SIZE, id);
+  };
 
   // Player positions
   for (const player of state.board.players) {
     //player.history.turns
     if (!player.isAlive) continue;
+
+    const lastTurn = player.history.turns[player.history.turns.length - 1];
+    let markerPos: [number, number] | null = null;
+
+    if (animationProgress < 1.0 && lastTurn != null) {
+      const totalWeight = lastTurn.steps.reduce((acc, s) => acc + s.weight, 0);
+      const targetWeight = animationProgress * totalWeight;
+      let currentWeight = 0;
+
+      for (let i = 0; i < lastTurn.steps.length; i++) {
+        const step = lastTurn.steps[i]!;
+        if (currentWeight + step.weight >= targetWeight) {
+          const progressInStep = (targetWeight - currentWeight) / step.weight;
+          const entryPos = getPixelPos(step.coord.q, step.coord.r, step.entry);
+          const exitPos = getPixelPos(step.coord.q, step.coord.r, step.exit);
+          const [hexX, hexY] = hexToPixel(step.coord.q, step.coord.r, HEX_SIZE);
+          const center = [originX + hexX, originY + hexY] as [number, number];
+
+          if (step.weight > 1) {
+            const linkWeight = step.weight - 1;
+            const linkProgressThreshold = linkWeight / step.weight;
+            if (progressInStep < linkProgressThreshold) {
+              const prevStep = lastTurn.steps[i - 1];
+              const prevPos = prevStep
+                ? getPixelPos(prevStep.coord.q, prevStep.coord.r, prevStep.exit)
+                : getPixelPos(player.history.startPosition.coord.q, player.history.startPosition.coord.r, player.history.startPosition.connectorId);
+              const t = progressInStep / linkProgressThreshold;
+              const mx = (prevPos[0] + entryPos[0]) / 2;
+              const my = (prevPos[1] + entryPos[1]) / 2;
+              const dx = mx - originX;
+              const dy = my - originY;
+              const len = Math.sqrt(dx * dx + dy * dy) || 1;
+              const cpx = mx + (dx / len) * 44;
+              const cpy = my + (dy / len) * 44;
+              markerPos = interpolateQuadratic(prevPos, [cpx, cpy], entryPos, t);
+            } else {
+              const t = (progressInStep - linkProgressThreshold) / (1 - linkProgressThreshold);
+              markerPos = interpolateQuadratic(entryPos, center, exitPos, t);
+            }
+          } else {
+            markerPos = interpolateQuadratic(entryPos, center, exitPos, progressInStep);
+          }
+          break;
+        }
+        currentWeight += step.weight;
+      }
+    }
+
     let current_position = player.position;
-    let next_position = board.players[player.index]!.position;
     const { coord, connectorId } = current_position;
-    const [cx, cy] = hexToPixel(coord.q, coord.r, HEX_SIZE);
-    const [mx, my] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, connectorId);
-    drawMarker(ctx, mx, my, player.color);
+    const [mx, my] = getPixelPos(coord.q, coord.r, connectorId);
+
+    if (markerPos) {
+      drawMarker(ctx, markerPos[0], markerPos[1], player.color);
+    } else {
+      drawMarker(ctx, mx, my, player.color);
+    }
 
     const { coord: sc, connectorId: scId } = player.history.startPosition;
-    const [scx, scy] = hexToPixel(sc.q, sc.r, HEX_SIZE);
-    const spx = originX + scx;
-    const spy = originY + scy;
+    const spx = originX + hexToPixel(sc.q, sc.r, HEX_SIZE)[0];
+    const spy = originY + hexToPixel(sc.q, sc.r, HEX_SIZE)[1];
     const [smx, smy] = connectorPosition(spx, spy, HEX_SIZE, scId);
 
     drawStartMarker(ctx, smx, smy, spx, spy, player.color);
-    if (current_position != next_position && state.options.previewMoves) {
+
+    let next_position = board.players[player.index]!.position;
+    if (animationProgress === 1.0 && current_position != next_position && state.options.previewMoves) {
       const { coord: next_coord, connectorId: next_connectorId } = next_position;
-      const [cx, cy] = hexToPixel(next_coord.q, next_coord.r, HEX_SIZE);
-      const [mx, my] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, next_connectorId);
+      const [mx, my] = getPixelPos(next_coord.q, next_coord.r, next_connectorId);
       drawMarker(ctx, mx, my, player.color);
     }
   }
