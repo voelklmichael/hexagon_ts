@@ -203,7 +203,7 @@
       min-height: 16px;
     }
 
-    #render-btn {
+    #start-new-game-with-options {
       width: 100%;
       background: #e94560;
       color: #fff;
@@ -218,7 +218,7 @@
       margin-top: 4px;
     }
 
-    #render-btn:hover {
+    #start-new-game-with-options:hover {
       background: #ff6b8a;
     }
 
@@ -716,7 +716,8 @@
         </div>
 
         <div id="error-msg"></div>
-        <button type="button" id="render-btn">Render</button>
+        <button type="button" id="start-new-game-with-options">Start Game</button>
+        <button type="button" id="restart-game-btn">Restart Game</button>
         <div id="undo-redo-row">
           <button type="button" id="undo-btn" disabled>&#8592; Undo</button>
           <button type="button" id="redo-btn" disabled>Redo &#8594;</button>
@@ -751,16 +752,16 @@
   <div id="right-panel">
     <div class="panel-header">
       <button class="burger-btn" id="right-burger-btn">&#9776;</button>
-      <span class="panel-title" id="right-panel-title">State (JSON)</span>
+      <span class="panel-title" id="right-panel-title">Statistics</span>
       <button class="collapse-btn" id="right-collapse-btn">&#8249;</button>
     </div>
     <div class="panel-nav hidden" id="right-panel-nav">
-      <div class="nav-item active" data-target="json-view">State (JSON)</div>
-      <div class="nav-item" data-target="stats-view">Statistics</div>
+      <div class="nav-item" data-target="json-view">State (JSON)</div>
+      <div class="nav-item active" data-target="stats-view">Statistics</div>
     </div>
 
     <!-- JSON view -->
-    <div id="json-view" class="right-view">
+    <div id="json-view" class="right-view hidden">
       <div id="json-header-row">
         <button id="json-copy-btn">Copy</button>
       </div>
@@ -768,7 +769,7 @@
     </div>
 
     <!-- Statistics view -->
-    <div id="stats-view" class="right-view hidden">
+    <div id="stats-view" class="right-view">
       <div class="stats-empty">No game in progress.</div>
     </div>
   </div>

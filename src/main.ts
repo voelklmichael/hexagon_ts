@@ -8,7 +8,7 @@ import { playTile } from "./playTile.js";
 import { renderMusicView, initMusicAutoplay } from "./background_music.js";
 
 const form = document.getElementById("options-form") as HTMLFormElement;
-const renderBtn = document.getElementById("render-btn") as HTMLButtonElement;
+const renderBtn = document.getElementById("start-new-game-with-options") as HTMLButtonElement;
 const errorEl = document.getElementById("error-msg") as HTMLElement;
 const emptyHint = document.getElementById("empty-hint") as HTMLElement;
 const canvas = document.getElementById("preview-canvas") as HTMLCanvasElement;
@@ -21,6 +21,7 @@ const jsonOutput = document.getElementById("json-output") as HTMLPreElement;
 const jsonCopyBtn = document.getElementById("json-copy-btn") as HTMLButtonElement;
 const undoBtn = document.getElementById("undo-btn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redo-btn") as HTMLButtonElement;
+const restartBtn = document.getElementById("restart-game-btn") as HTMLButtonElement;
 
 // ── Panel navigation ──
 function setupBurgerMenu(
@@ -61,6 +62,17 @@ function switchLeftPanel(targetId: string): void {
     const isTarget = item.dataset.target === targetId;
     item.classList.toggle("active", isTarget);
     if (isTarget) document.getElementById("left-panel-title")!.textContent = item.textContent!.trim();
+  });
+}
+
+function switchRightPanel(targetId: string): void {
+  const nav = document.getElementById("right-panel-nav")!;
+  document.querySelectorAll<HTMLElement>(".right-view").forEach(v => v.classList.add("hidden"));
+  document.getElementById(targetId)!.classList.remove("hidden");
+  nav.querySelectorAll<HTMLElement>(".nav-item").forEach(item => {
+    const isTarget = item.dataset.target === targetId;
+    item.classList.toggle("active", isTarget);
+    if (isTarget) document.getElementById("right-panel-title")!.textContent = item.textContent!.trim();
   });
 }
 
@@ -491,9 +503,46 @@ function render(): void {
   persistState();
   redrawBoard();
   renderHandPanel();
+  renderStats();
+  switchLeftPanel("hand-view");
+  switchRightPanel("stats-view");
+}
+
+function restart(): void {
+  if (!state) return;
+
+  const rng = new Rng(state.seed);
+  let board;
+  try {
+    board = createStandardGameBoard(state.options, rng);
+  } catch (e) {
+    errorEl.textContent = e instanceof Error ? e.message : String(e);
+    return;
+  }
+
+  turn = 0;
+  state = {
+    ...state,
+    board,
+    history: [],
+    rng,
+    currentPlayer: { playerIndex: 0, selectedTileIndex: null },
+    statistics: computeStatistics(board),
+  };
+
+  undoStack.length = 0;
+  redoStack.length = 0;
+  syncUndoRedo();
+  persistState();
+  redrawBoard();
+  renderHandPanel();
+  renderStats();
+  switchLeftPanel("hand-view");
+  switchRightPanel("stats-view");
 }
 
 renderBtn.addEventListener("click", render);
+restartBtn.addEventListener("click", restart);
 
 const canvasObserver = new ResizeObserver(() => { if (state) redrawBoard(); });
 canvasObserver.observe(canvas);
@@ -508,14 +557,24 @@ if (saved) {
     turn = t;
     emptyHint.style.display = "none";
     switchLeftPanel("hand-view");
+    switchRightPanel("stats-view");
     syncUndoRedo();
     redrawBoard();
     renderHandPanel();
     renderStats();
     renderMusicView();
-  } catch {
+  } catch (e) {
+    console.error("Failed to restore session:", e);
     localStorage.removeItem(LS_KEY);
+    emptyHint.style.display = "flex";
+    switchLeftPanel("options-view");
+    switchRightPanel("stats-view");
   }
+} else {
+  // No saved game: show the welcome screen (empty hint + options)
+  emptyHint.style.display = "flex";
+  switchLeftPanel("options-view");
+  switchRightPanel("stats-view");
 }
 
 // Draw after window.load so canvas dimensions are guaranteed to be non-zero.
