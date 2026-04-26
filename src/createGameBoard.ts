@@ -115,6 +115,7 @@ export function createStandardGameBoard(options: StandardGameOptions, rng: Rng):
       position: startPosition,
       hand,
       history: { startPosition, turns: [] },
+      index: i
     };
   });
 

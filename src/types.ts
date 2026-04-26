@@ -149,6 +149,8 @@ export type Player = {
 
   /** Full movement history from the start of the game. */
   history: PlayerHistory;
+
+  index: number
 };
 
 // ─── GameBoard ────────────────────────────────────────────────────────────────

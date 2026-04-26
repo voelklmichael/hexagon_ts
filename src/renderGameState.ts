@@ -3,15 +3,17 @@ import {
   HEX_SIZE, hexVertices, hexToPixel, edgeConnectors,
   connectorPosition, mirrorConnector, EDGE_NEIGHBOR,
 } from "./hex.js";
+import { playTile } from "./playTile.js";
 
 const COLORS = {
   hexFill: "#16213e",
   hexStroke: "#0f3460",
   placedFill: "#0d1b35",
   placedStroke: "#1a4080",
-  connector: "#e94560",
+  connector: "#ffd700",
   path: "#53d8fb",
   deadPath: "#3a3a52",
+  closedLoop: "#252530",
   longMovement: "#ffd93d",
 };
 
@@ -36,26 +38,26 @@ function drawHexShape(
   ctx.stroke();
 }
 
-function drawConnectorDot(ctx: CanvasRenderingContext2D, mx: number, my: number): void {
+function drawConnectorDot(ctx: CanvasRenderingContext2D, mx: number, my: number, color: string): void {
   const grd = ctx.createRadialGradient(mx, my, 0, mx, my, CONNECTOR_RADIUS * 2.5);
-  grd.addColorStop(0, "#ff6b8acc");
-  grd.addColorStop(1, "#ff6b8a00");
+  grd.addColorStop(0, color + "cc");
+  grd.addColorStop(1, color + "00");
   ctx.beginPath();
   ctx.arc(mx, my, CONNECTOR_RADIUS * 2.5, 0, Math.PI * 2);
   ctx.fillStyle = grd;
   ctx.fill();
   ctx.beginPath();
   ctx.arc(mx, my, CONNECTOR_RADIUS, 0, Math.PI * 2);
-  ctx.fillStyle = COLORS.connector;
+  ctx.fillStyle = color;
   ctx.fill();
 }
 
-function drawXMarker(ctx: CanvasRenderingContext2D, mx: number, my: number, angle: number): void {
+function drawXMarker(ctx: CanvasRenderingContext2D, mx: number, my: number, angle: number, color: string): void {
   const arm = CONNECTOR_RADIUS * 1.6;
   ctx.save();
   ctx.translate(mx, my);
   ctx.rotate(angle);
-  ctx.strokeStyle = COLORS.connector;
+  ctx.strokeStyle = color;
   ctx.lineWidth = 1.5;
   ctx.lineCap = "round";
   ctx.beginPath();
@@ -79,6 +81,50 @@ function drawPath(
   ctx.beginPath();
   ctx.moveTo(ax, ay);
   ctx.quadraticCurveTo(cx, cy, bx, by);
+  ctx.stroke();
+}
+
+function drawStartMarker(
+  ctx: CanvasRenderingContext2D,
+  mx: number, my: number,
+  hexCx: number, hexCy: number,
+  color: string,
+): void {
+  const r = CONNECTOR_RADIUS + 3;
+
+  // Filled circle at the start position
+  ctx.beginPath();
+  ctx.arc(mx, my, r, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = "#ffffff44";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Arrow pointing inward toward the hex center
+  const dx = hexCx - mx;
+  const dy = hexCy - my;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const nx = dx / dist;
+  const ny = dy / dist;
+
+  const shaftStart = r + 3;
+  const shaftEnd = shaftStart + 18;
+  const headLen = 8;
+  const headAngle = Math.PI / 5;
+  const angle = Math.atan2(ny, nx);
+  const tipX = mx + nx * shaftEnd;
+  const tipY = my + ny * shaftEnd;
+
+  ctx.beginPath();
+  ctx.moveTo(mx + nx * shaftStart, my + ny * shaftStart);
+  ctx.lineTo(tipX, tipY);
+  ctx.lineTo(tipX - headLen * Math.cos(angle - headAngle), tipY - headLen * Math.sin(angle - headAngle));
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(tipX - headLen * Math.cos(angle + headAngle), tipY - headLen * Math.sin(angle + headAngle));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
   ctx.stroke();
 }
 
@@ -125,6 +171,18 @@ function drawLongMovement(
   ctx.restore();
 }
 
+function mixColors(colors: string[]): string {
+  if (colors.length === 1) return colors[0]!;
+  let r = 0, g = 0, b = 0;
+  for (const c of colors) {
+    r += parseInt(c.slice(1, 3), 16);
+    g += parseInt(c.slice(3, 5), 16);
+    b += parseInt(c.slice(5, 7), 16);
+  }
+  const n = colors.length;
+  return `#${Math.round(r / n).toString(16).padStart(2, "0")}${Math.round(g / n).toString(16).padStart(2, "0")}${Math.round(b / n).toString(16).padStart(2, "0")}`;
+}
+
 function followConnection(tile: ConnectorTile, entry: ConnectorId): ConnectorId {
   for (const [a, b] of tile.connections) {
     if (a === entry) return b;
@@ -139,128 +197,243 @@ export function renderGameState(
   width: number,
   height: number,
 ): void {
-  const { board, options } = state;
   const originX = width / 2;
   const originY = height / 2;
 
   ctx.clearRect(0, 0, width, height);
 
-  // Build lookup structures from the tile list
+  let board = state.board;
+  {
+    let selected_tile = null;
+    if (state.currentPlayer.selectedTileIndex != null) {
+      selected_tile
+        = state.board.players[state.currentPlayer.playerIndex]?.hand[state.currentPlayer.selectedTileIndex];
+    } if (selected_tile != null) {
+      board = playTile(state.board, state.currentPlayer.playerIndex, selected_tile, 0);
+    }
+  }
+
   const placedMap = new Map<string, ConnectorTile>();
-  const cellSet = new Set<string>();
   for (const entry of board.tiles) {
-    if (entry.tile.kind === "removed") continue;
-    const key = cellKey(entry.coord.q, entry.coord.r);
-    cellSet.add(key);
-    if (entry.tile.kind === "connector") placedMap.set(key, entry.tile);
-  }
-
-  // Flood-fill to find live (reachable) connectors for dead-path highlighting.
-  // Seeds: connectors on placed tiles whose edge faces an empty cell.
-  const liveConnectors = new Set<string>();
-  if (options.highlightDeadPaths) {
-    const lk = (q: number, r: number, c: ConnectorId) => `${q},${r},${c}`;
-    const queue: Array<{ q: number; r: number; c: ConnectorId }> = [];
-
-    for (const [key, _] of placedMap) {
-      const [qs, rs] = key.split(",").map(Number) as [number, number];
-      for (let edge = 0; edge < 6; edge++) {
-        const [dq, dr] = EDGE_NEIGHBOR[edge]!;
-        const nk = cellKey(qs + dq, rs + dr);
-        if (cellSet.has(nk) && !placedMap.has(nk)) {
-          queue.push(
-            { q: qs, r: rs, c: (edge * 2) as ConnectorId },
-            { q: qs, r: rs, c: (edge * 2 + 1) as ConnectorId },
-          );
-        }
-      }
-    }
-
-    while (queue.length) {
-      const item = queue.pop()!;
-      const k = lk(item.q, item.r, item.c);
-      if (liveConnectors.has(k)) continue;
-      liveConnectors.add(k);
-
-      const tile = placedMap.get(cellKey(item.q, item.r));
-      if (!tile) continue;
-
-      const paired = followConnection(tile, item.c);
-      queue.push({ q: item.q, r: item.r, c: paired });
-
-      for (const c of [item.c, paired] as ConnectorId[]) {
-        const edge = Math.floor(c / 2);
-        const [dq, dr] = EDGE_NEIGHBOR[edge]!;
-        const nq = item.q + dq, nr = item.r + dr;
-        if (placedMap.has(cellKey(nq, nr))) {
-          queue.push({ q: nq, r: nr, c: mirrorConnector(c) });
-        }
-      }
+    if (entry.tile.kind === "connector") {
+      placedMap.set(cellKey(entry.coord.q, entry.coord.r), entry.tile);
     }
   }
 
-  // Draw each cell
+  // Hex shapes
   for (const entry of board.tiles) {
     if (entry.tile.kind === "removed") continue;
     const { q, r } = entry.coord;
     const [cx, cy] = hexToPixel(q, r, HEX_SIZE);
     const px = originX + cx;
     const py = originY + cy;
-    const placed = entry.tile.kind === "connector" ? entry.tile : null;
 
-    drawHexShape(ctx, px, py, HEX_SIZE,
-      placed ? COLORS.placedFill : COLORS.hexFill,
-      placed ? COLORS.placedStroke : COLORS.hexStroke,
-    );
+    const currentPlayer = state.board.players[state.currentPlayer.playerIndex];
+    const currentCoord = currentPlayer?.position.coord;
+    const isCurrentPlayerTile =
+      currentCoord !== undefined &&
+      q === currentCoord.q &&
+      r === currentCoord.r;
 
-    if (placed) {
-      for (const [a, b] of placed.connections) {
-        const live = !options.highlightDeadPaths ||
-          (liveConnectors.has(`${q},${r},${a}`) && liveConnectors.has(`${q},${r},${b}`));
-        drawPath(ctx, px, py, HEX_SIZE, a, b, live ? COLORS.path : COLORS.deadPath);
-      }
+
+    let fill: string;
+    if (isCurrentPlayerTile && state.options.previewMoves) {
+      fill = "#8b4513"; // brown
+    } else if (entry.tile.kind === "connector") {
+      fill = "#000000"; // black
+    } else {
+      fill = "#ffffff"; // white
     }
 
-    // Each player's traveled paths in their color
-    for (const player of board.players) {
-      for (const step of player.history.steps) {
-        if (step.coord.q !== q || step.coord.r !== r) continue;
-        drawPath(ctx, px, py, HEX_SIZE, step.entry, step.exit, player.color, 3);
-      }
-    }
-
-    // Connector dots on inner edges, X markers on outer edges
-    for (let edge = 0; edge < 6; edge++) {
-      const [cA, cB] = edgeConnectors(px, py, HEX_SIZE, edge);
-      const [dq, dr] = EDGE_NEIGHBOR[edge]!;
-      const isOuter = !cellSet.has(cellKey(q + dq, r + dr));
-      if (isOuter) {
-        const angle = (edge * 60 + 30) * (Math.PI / 180);
-        drawXMarker(ctx, cA[0], cA[1], angle);
-        drawXMarker(ctx, cB[0], cB[1], angle);
-      } else {
-        drawConnectorDot(ctx, cA[0], cA[1]);
-        drawConnectorDot(ctx, cB[0], cB[1]);
-      }
-    }
+    drawHexShape(ctx, px, py, HEX_SIZE, fill, "#444444");
   }
 
-  // LongMovement connectors — dashed arcs outside the board rim
+  // "q,r,connId" → board connector — used to cross tile boundaries while tracing
+  const boardConnByPos = new Map<string, (typeof board.connectors)[number]>();
   for (const conn of board.connectors) {
-    if (conn.kind !== "long_movement") continue;
-    const [fcx, fcy] = hexToPixel(conn.from.coord.q, conn.from.coord.r, HEX_SIZE);
-    const [fromX, fromY] = connectorPosition(originX + fcx, originY + fcy, HEX_SIZE, conn.from.connectorId);
-    const [tcx, tcy] = hexToPixel(conn.to.coord.q, conn.to.coord.r, HEX_SIZE);
-    const [toX, toY] = connectorPosition(originX + tcx, originY + tcy, HEX_SIZE, conn.to.connectorId);
-    drawLongMovement(ctx, originX, originY, fromX, fromY, toX, toY);
+    const add = (q: number, r: number, c: ConnectorId) => boardConnByPos.set(`${q},${r},${c}`, conn);
+    switch (conn.kind) {
+      case "outer_rim": add(conn.position.coord.q, conn.position.coord.r, conn.position.connectorId); break;
+      case "tile_tile": add(conn.a.coord.q, conn.a.coord.r, conn.a.connectorId);
+        add(conn.b.coord.q, conn.b.coord.r, conn.b.connectorId); break;
+      case "teleporter":
+      case "long_movement": add(conn.from.coord.q, conn.from.coord.r, conn.from.connectorId);
+        add(conn.to.coord.q, conn.to.coord.r, conn.to.connectorId); break;
+    }
   }
 
-  // Player markers at their current positions
-  for (const player of board.players) {
-    if (!player.isAlive) continue;
-    const { coord, connectorId } = player.position;
-    const [cx, cy] = hexToPixel(coord.q, coord.r, HEX_SIZE);
-    const [mpx, mpy] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, connectorId);
-    drawMarker(ctx, mpx, mpy, player.color);
+  const addStep = (map: Map<string, Set<number>>, key: string, pi: number) => {
+    const s = map.get(key);
+    if (s) s.add(pi); else map.set(key, new Set([pi]));
+  };
+
+  // "q,r,entry,exit" → set of player indices, real history only (state.board)
+  // In "die" collision mode, dead players' last turn (the death turn) is excluded.
+  const historyStepMap = new Map<string, Set<number>>();
+  for (let pi = 0; pi < state.board.players.length; pi++) {
+    const player = state.board.players[pi]!;
+    const turns = (!player.isAlive && state.options.collisionMode === "die")
+      ? player.history.turns.slice(0, -1)
+      : player.history.turns;
+    for (const turn of turns) {
+      for (const step of turn.steps) {
+        addStep(historyStepMap, `${step.coord.q},${step.coord.r},${step.entry},${step.exit}`, pi);
+        addStep(historyStepMap, `${step.coord.q},${step.coord.r},${step.exit},${step.entry}`, pi);
+      }
+    }
   }
+
+  // "q,r,entry,exit" → set of player indices, including preview turn (board)
+  const previewStepMap = new Map<string, Set<number>>();
+  for (let pi = 0; pi < board.players.length; pi++) {
+    for (const turn of board.players[pi]!.history.turns) {
+      for (const step of turn.steps) {
+        addStep(previewStepMap, `${step.coord.q},${step.coord.r},${step.entry},${step.exit}`, pi);
+        addStep(previewStepMap, `${step.coord.q},${step.coord.r},${step.exit},${step.entry}`, pi);
+      }
+    }
+  }
+
+  type Arc = { q: number; r: number; entry: ConnectorId; exit: ConnectorId };
+  type RimEnd = { q: number; r: number; connectorId: ConnectorId };
+
+  const visited = new Set<string>();
+  const rimHandled = new Set<string>();
+
+  // Follow a chain of tile arcs starting from (q, r, connId), crossing tile_tile
+  // boundaries until an outer_rim connector is reached or the chain ends.
+  const traceChain = (startQ: number, startR: number, startConnId: ConnectorId): { arcs: Arc[]; rimEnds: RimEnd[] } => {
+    const arcs: Arc[] = [];
+    const rimEnds: RimEnd[] = [];
+    let q = startQ, r = startR, connId = startConnId;
+
+    while (true) {
+      if (visited.has(`${q},${r},${connId}`)) break;
+      const tile = placedMap.get(cellKey(q, r));
+      if (!tile) break;
+
+      const paired = followConnection(tile, connId);
+      visited.add(`${q},${r},${connId}`);
+      visited.add(`${q},${r},${paired}`);
+      arcs.push({ q, r, entry: connId, exit: paired });
+
+      const next = boardConnByPos.get(`${q},${r},${paired}`);
+      if (next?.kind === "outer_rim") {
+        rimEnds.push({ q, r, connectorId: paired });
+        break;
+      } else if (next?.kind === "tile_tile") {
+        const other = (next.a.coord.q === q && next.a.coord.r === r && next.a.connectorId === paired)
+          ? next.b : next.a;
+        q = other.coord.q; r = other.coord.r; connId = other.connectorId;
+      } else {
+        break; // teleporter, long_movement, or no connector (empty neighbour)
+      }
+    }
+
+    return { arcs, rimEnds };
+  };
+
+  for (const conn of board.connectors) {
+    const starts: Array<{ q: number; r: number; connId: ConnectorId; isRim: boolean }> = [];
+    switch (conn.kind) {
+      case "outer_rim":
+        starts.push({ q: conn.position.coord.q, r: conn.position.coord.r, connId: conn.position.connectorId, isRim: true });
+        break;
+      case "tile_tile":
+        starts.push({ q: conn.a.coord.q, r: conn.a.coord.r, connId: conn.a.connectorId, isRim: false });
+        starts.push({ q: conn.b.coord.q, r: conn.b.coord.r, connId: conn.b.connectorId, isRim: false });
+        break;
+      case "teleporter":
+      case "long_movement":
+        starts.push({ q: conn.from.coord.q, r: conn.from.coord.r, connId: conn.from.connectorId, isRim: false });
+        starts.push({ q: conn.to.coord.q, r: conn.to.coord.r, connId: conn.to.connectorId, isRim: false });
+        break;
+    }
+
+    for (const { q, r, connId, isRim } of starts) {
+      if (visited.has(`${q},${r},${connId}`)) continue;
+
+      const { arcs, rimEnds } = traceChain(q, r, connId);
+      if (arcs.length === 0) continue;
+
+      const allRimEnds: RimEnd[] = isRim ? [{ q, r, connectorId: connId }, ...rimEnds] : rimEnds;
+
+      // Collect all owning players — history (full color) takes priority over preview-only (translucent)
+      const historyOwners = new Set<number>();
+      for (const arc of arcs) {
+        const s = historyStepMap.get(`${arc.q},${arc.r},${arc.entry},${arc.exit}`);
+        if (s) for (const pi of s) historyOwners.add(pi);
+      }
+      const previewOnlyOwners = new Set<number>();
+      if (historyOwners.size === 0) {
+        for (const arc of arcs) {
+          const s = previewStepMap.get(`${arc.q},${arc.r},${arc.entry},${arc.exit}`);
+          if (s) for (const pi of s) previewOnlyOwners.add(pi);
+        }
+      }
+
+      const ownerIdx = historyOwners.size > 0 ? [...historyOwners][0]! : previewOnlyOwners.size > 0 ? [...previewOnlyOwners][0]! : -1;
+      const arcColor = historyOwners.size > 0
+        ? mixColors([...historyOwners].map(pi => board.players[pi]!.color))
+        : previewOnlyOwners.size > 0
+          ? mixColors([...previewOnlyOwners].map(pi => board.players[pi]!.color)) + "aa"
+          : allRimEnds.length === 0 ? "#ffd700" : "#888888";
+
+      for (const arc of arcs) {
+        const [cx, cy] = hexToPixel(arc.q, arc.r, HEX_SIZE);
+        drawPath(ctx, originX + cx, originY + cy, HEX_SIZE, arc.entry, arc.exit, arcColor);
+      }
+
+      for (const rim of allRimEnds) {
+        rimHandled.add(`${rim.q},${rim.r},${rim.connectorId}`);
+        const [cx, cy] = hexToPixel(rim.q, rim.r, HEX_SIZE);
+        const [mx, my] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, rim.connectorId);
+        if (ownerIdx >= 0) {
+          drawConnectorDot(ctx, mx, my, "#ffd700");
+        } else {
+          const edge = Math.floor(rim.connectorId / 2);
+          drawXMarker(ctx, mx, my, (edge * 60 + 30) * (Math.PI / 180), "#e94560");
+        }
+      }
+    }
+  }
+
+  // Outer rim connectors on empty (unplaced) cells — always red X
+  for (const conn of board.connectors) {
+    if (conn.kind !== "outer_rim") continue;
+    const { coord, connectorId } = conn.position;
+    if (rimHandled.has(`${coord.q},${coord.r},${connectorId}`)) continue;
+    const [cx, cy] = hexToPixel(coord.q, coord.r, HEX_SIZE);
+    const [mx, my] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, connectorId);
+    const edge = Math.floor(connectorId / 2);
+    drawXMarker(ctx, mx, my, (edge * 60 + 30) * (Math.PI / 180), "#e94560");
+  }
+
+
+  // Player positions
+  for (const player of state.board.players) {
+    //player.history.turns
+    if (!player.isAlive) continue;
+    let current_position = player.position;
+    let next_position = board.players[player.index]!.position;
+    const { coord, connectorId } = current_position;
+    const [cx, cy] = hexToPixel(coord.q, coord.r, HEX_SIZE);
+    const [mx, my] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, connectorId);
+    drawMarker(ctx, mx, my, player.color);
+
+    const { coord: sc, connectorId: scId } = player.history.startPosition;
+    const [scx, scy] = hexToPixel(sc.q, sc.r, HEX_SIZE);
+    const spx = originX + scx;
+    const spy = originY + scy;
+    const [smx, smy] = connectorPosition(spx, spy, HEX_SIZE, scId);
+
+    drawStartMarker(ctx, smx, smy, spx, spy, player.color);
+    if (current_position != next_position && state.options.previewMoves) {
+      const { coord: next_coord, connectorId: next_connectorId } = next_position;
+      const [cx, cy] = hexToPixel(next_coord.q, next_coord.r, HEX_SIZE);
+      const [mx, my] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, next_connectorId);
+      drawMarker(ctx, mx, my, player.color);
+    }
+  }
+
 }
