@@ -151,6 +151,7 @@ undoBtn.addEventListener("click", () => {
   persistState();
   redrawBoard();
   renderMidPanel();
+  renderStats();
 });
 
 redoBtn.addEventListener("click", () => {
@@ -234,8 +235,7 @@ function redrawBoard(): void {
   console.log("redrawing", canvas.width, canvas.height);
   renderGameState(state, ctx, canvas.width, canvas.height);
   jsonOutput.textContent = JSON.stringify(state, null, 2);
-
-
+  console.log("done");
 }
 
 function rotateTileInHand(pi: number, tileIdx: number, steps: number): void {
@@ -377,6 +377,47 @@ playBtn.addEventListener("click", () => {
   renderMidPanel();
 });
 
+function renderStats(): void {
+  const view = document.getElementById("stats-view")!;
+  if (!state) {
+    view.innerHTML = '<div class="stats-empty">No game in progress.</div>';
+    return;
+  }
+  const { statistics, board, options } = state;
+  const aliveCount = board.players.filter(p => p.isAlive).length;
+  const statusText = aliveCount <= 1
+    ? (aliveCount === 1 ? "Game over" : "Draw")
+    : `${aliveCount} alive`;
+  const winStat = options.winningCondition === "MaxDistance" ? "dist"
+    : options.winningCondition === "MaxVelocity" ? "vel"
+      : null;
+  const hi = (col: string) => winStat === col ? " class=\"stats-hi\"" : "";
+
+  let rows = "";
+  for (const p of board.players) {
+    const dist = statistics.totalDistance[p.index] ?? 0;
+    const vel = statistics.maxVelocity[p.index] ?? 0;
+    rows += `<tr${p.isAlive ? "" : " class=\"stats-dead\""}>
+      <td><span class="stats-dot" style="background:${p.color}"></span>P${p.index + 1}</td>
+      <td${hi("dist")}>${dist}</td>
+      <td${hi("vel")}>${vel}</td>
+      <td>${p.history.turns.length}</td>
+    </tr>`;
+  }
+
+  view.innerHTML = `
+    <div class="stats-meta">Turn ${turn} · ${statusText}</div>
+    <table class="stats-table">
+      <thead><tr>
+        <th>Player</th>
+        <th${hi("dist")} title="Total path steps traversed">Dist</th>
+        <th${hi("vel")} title="Max steps in a single turn">Max&nbsp;v</th>
+        <th title="Number of turns taken">Turns</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
 function computeStatistics(board: GameBoard): Statistics {
   const totalDistance: Record<number, number> = {};
   const maxVelocity: Record<number, number> = {};
@@ -452,6 +493,7 @@ if (saved) {
     syncUndoRedo();
     redrawBoard();
     renderMidPanel();
+    renderStats();
   } catch {
     localStorage.removeItem(LS_KEY);
   }

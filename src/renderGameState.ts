@@ -240,12 +240,12 @@ export function renderGameState(
     if (isCurrentPlayerTile && state.options.previewMoves) {
       fill = "#8b4513"; // brown
     } else if (entry.tile.kind === "connector") {
-      fill = "#000000"; // black
+      fill = COLORS.placedFill;
     } else {
-      fill = "#ffffff"; // white
+      fill = COLORS.hexFill;
     }
 
-    drawHexShape(ctx, px, py, HEX_SIZE, fill, "#444444");
+    drawHexShape(ctx, px, py, HEX_SIZE, fill, entry.tile.kind === "connector" ? COLORS.placedStroke : COLORS.hexStroke);
   }
 
   // "q,r,connId" → board connector — used to cross tile boundaries while tracing
