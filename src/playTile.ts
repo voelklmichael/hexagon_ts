@@ -176,7 +176,7 @@ export function playTile(
       position: walk.finalPosition ?? p.position,
       history: {
         ...p.history, turns: steps.length > 0
-          ? [...p.history.turns, { playerIndex, turn, steps, isAnimated }]
+          ? [...p.history.turns, { playerIndex: pi, turn, steps, isAnimated }]
           : p.history.turns
       },
     };

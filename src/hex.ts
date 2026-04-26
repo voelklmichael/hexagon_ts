@@ -5,7 +5,7 @@
 //    4       1
 //      3   2
 
-import { Rng } from "./random_number_generator";
+import { Rng } from "./random_number_generator.js";
 
 export const HEX_SIZE = 48;
 

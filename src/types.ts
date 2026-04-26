@@ -9,8 +9,8 @@
 //   Edge 4 → connectors 8, 9   (left)
 //   Edge 5 → connectors 10, 11 (upper-left)
 
-import { Rng } from "./random_number_generator";
-import { StandardGameOptions } from "./standardGameOptions";
+import { Rng } from "./random_number_generator.js";
+import { StandardGameOptions } from "./standardGameOptions.js";
 
 export type ConnectorId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
