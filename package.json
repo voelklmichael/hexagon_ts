@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "watch": "tsc -w"
+    "watch": "tsc -w",
+    "serve": "npx serve ."
   },
   "devDependencies": {
     "typescript": "^5.0.0"
