@@ -15,4 +15,5 @@ export type StandardGameOptions = {
   /** Minimum 1. */
   boardSize: number;
   outerConnectors: OuterConnectors;
+  previewMoves: boolean;
 };

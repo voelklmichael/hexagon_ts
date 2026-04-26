@@ -113,6 +113,12 @@ export type PathStep = {
   exit: ConnectorId;
 };
 
+export type PlayerTurnHistory = {
+  playerIndex: number;
+  turn: number;
+  steps: PathStep[];
+}
+
 /**
  * The full movement history of a player.
  * `startPosition` is where they entered the board (outer-rim connector).
@@ -120,7 +126,7 @@ export type PathStep = {
  */
 export type PlayerHistory = {
   startPosition: BoardPosition;
-  steps: PathStep[];
+  turns: PlayerTurnHistory[]
 };
 
 // ─── Player ───────────────────────────────────────────────────────────────────

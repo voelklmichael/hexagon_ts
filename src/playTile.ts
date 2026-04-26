@@ -1,6 +1,6 @@
 import type {
   GameBoard, ConnectorTile, BoardConnector,
-  TileCoord, ConnectorId, PathStep, BoardPosition,
+  TileCoord, ConnectorId, PathStep, BoardPosition, PlayerTurnHistory,
 } from "./types.js";
 
 function tileAt(tiles: GameBoard["tiles"], coord: TileCoord) {
@@ -86,6 +86,7 @@ export function playTile(
   board: GameBoard,
   playerIndex: number,
   tile: ConnectorTile,
+  turn: number,
 ): GameBoard {
   const player = board.players[playerIndex];
   if (!player) throw new Error(`Invalid player index: ${playerIndex}`);
@@ -109,13 +110,15 @@ export function playTile(
     const { steps, finalPosition } = walkPath(updatedBoard, p.position);
     if (steps.length === 0) return p;
 
+    const turnEntry: PlayerTurnHistory = { playerIndex, turn, steps };
+
     return {
       ...p,
       isAlive: finalPosition !== null,
       position: finalPosition ?? p.position,
       history: {
         ...p.history,
-        steps: [...p.history.steps, ...steps],
+        turns: [...p.history.turns, turnEntry],
       },
     };
   });

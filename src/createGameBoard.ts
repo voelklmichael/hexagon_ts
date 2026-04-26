@@ -114,7 +114,7 @@ export function createStandardGameBoard(options: StandardGameOptions, rng: Rng):
       canTakeActions: true,
       position: startPosition,
       hand,
-      history: { startPosition, steps: [] },
+      history: { startPosition, turns: [] },
     };
   });
 
