@@ -333,7 +333,6 @@ export function renderGameState(
     return { arcs, rimEnds };
   };
 
-  for (const conn of board.connectors) {
   for (const conn of [...board.connectors].sort((a, b) => (a.kind === "outer_rim" ? -1 : b.kind === "outer_rim" ? 1 : 0))) {
     const starts: Array<{ q: number; r: number; connId: ConnectorId; isRim: boolean }> = [];
     switch (conn.kind) {
