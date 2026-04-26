@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <title>Hexagon Puzzle</title>
+  <title>Board Preview</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       background: #1a1a2e;
@@ -12,350 +17,637 @@
       height: 100vh;
       overflow: hidden;
       font-family: sans-serif;
+      color: #a0b8d0;
+      font-size: 12px;
     }
 
-    #left-column {
-      width: 200px;
+    /* ── Shared panel header ── */
+    .panel-header {
+      height: 33px;
+      padding: 0 10px;
+      border-bottom: 1px solid #0f3460;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      flex: 1;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #5a7a9a;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .burger-btn,
+    .collapse-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: #5a7a9a;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 2px 5px;
+      line-height: 1;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .burger-btn:hover,
+    .collapse-btn:hover {
+      background: #1f4080;
+      color: #a0b8d0;
+      border-color: #0f3460;
+    }
+
+    /* ── Dropdown nav ── */
+    .panel-nav {
+      position: absolute;
+      top: 33px;
+      left: 0;
+      right: 0;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-top: none;
+      z-index: 100;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+
+    .panel-nav.hidden {
+      display: none;
+    }
+
+    .nav-item {
+      padding: 9px 14px;
+      font-size: 11px;
+      color: #a0b8d0;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .nav-item:hover {
+      background: #1f4080;
+    }
+
+    .nav-item.active {
+      color: #53d8fb;
+    }
+
+    /* ── Left panel ── */
+    #left-panel {
+      width: 240px;
       flex-shrink: 0;
       border-right: 1px solid #0f3460;
       display: flex;
       flex-direction: column;
-    }
-
-    /* --- Burger menu --- */
-    #left-header {
       position: relative;
-      flex-shrink: 0;
-      border-bottom: 1px solid #0f3460;
     }
 
-    #menu-btn {
-      width: 100%;
-      background: none;
-      border: none;
-      color: #a0b8d0;
-      font-size: 13px;
-      padding: 9px 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background 0.15s, color 0.15s;
-    }
-    #menu-btn:hover { background: #1a2a4a; color: #fff; }
-    #menu-btn .burger { font-size: 15px; line-height: 1; }
-    #menu-btn .view-name { flex: 1; text-align: left; }
-
-    #menu-dropdown {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0; right: 0;
-      background: #16213e;
-      border: 1px solid #0f3460;
-      border-top: none;
-      z-index: 20;
-    }
-    #menu-dropdown.open { display: block; }
-
-    .menu-item {
-      display: block;
-      width: 100%;
-      background: none;
-      border: none;
-      color: #a0b8d0;
-      font-size: 13px;
-      padding: 9px 12px 9px 36px;
-      text-align: left;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
-    .menu-item:hover  { background: #1a2a4a; color: #fff; }
-    .menu-item.active { color: #fff; }
-    .menu-item.active::before { content: "✓"; position: absolute; left: 14px; }
-
-    #player-indicator {
-      text-align: center;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      padding: 6px 0 4px;
-      border-bottom: 2px solid transparent;
-      text-transform: uppercase;
-      flex-shrink: 0;
-      transition: color 0.2s, border-color 0.2s;
-    }
-
-    /* --- Hand panel --- */
-    #hand-panel {
+    .left-view {
       flex: 1;
-      display: flex;
-      flex-direction: column;
       min-height: 0;
-    }
-    #hand-panel.hidden { display: none; }
-
-    .hand-slot {
-      flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      border-bottom: 1px solid #0f3460;
-    }
-    .hand-slot:last-child { border-bottom: none; }
-
-    .tile-canvas {
-      flex: 1;
-      width: 100%;
-      min-height: 0;
+      overflow: hidden;
     }
 
-    .tile-controls {
-      display: flex;
-      gap: 6px;
-      padding: 8px;
-      width: 100%;
-      justify-content: center;
-    }
-
-    .tile-controls button {
-      background: #16213e;
-      color: #a0b8d0;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      padding: 4px 10px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.15s, color 0.15s;
-    }
-    .tile-controls button:hover { background: #1f4080; color: #fff; }
-
-    .btn-select {
-      color: #e94560 !important;
-      border-color: #e94560 !important;
-    }
-    .btn-select:hover { background: #e94560 !important; color: #fff !important; }
-
-    .btn-play {
-      color: #00e676 !important;
-      border-color: #00e676 !important;
-    }
-    .btn-play:hover { background: #00e676 !important; color: #1a1a2e !important; }
-
-    /* --- Settings panel --- */
-    #control-panel {
-      flex: 1;
+    .left-view.hidden {
       display: none;
-      flex-direction: column;
-      gap: 16px;
-      padding: 14px;
-      color: #a0b8d0;
-      font-size: 12px;
+    }
+
+    /* Options view */
+    #options-form {
+      flex: 1;
       overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
-    #control-panel.visible { display: flex; }
 
-    .ctrl-label {
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    label {
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
-      font-size: 10px;
       color: #5a7a9a;
-      margin-bottom: 6px;
     }
 
-    .count-btns {
-      display: flex;
-      gap: 4px;
-    }
-
-    .count-btns button {
-      flex: 1;
-      background: #16213e;
-      color: #a0b8d0;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      padding: 4px 0;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.15s, color 0.15s;
-    }
-    .count-btns button:hover  { background: #1f4080; color: #fff; }
-    .count-btns button.active { background: #1f4080; color: #fff; border-color: #4a80c0; }
-
-    .player-color-rows { display: flex; flex-direction: column; gap: 6px; }
-
-    .player-color-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .player-color-row span {
-      width: 24px;
-      font-size: 11px;
-    }
-
-    .ctrl-btn {
-      display: block;
-      width: 100%;
-      background: #16213e;
-      color: #a0b8d0;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      padding: 6px 10px;
-      margin-top: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      text-align: left;
-      transition: background 0.15s, color 0.15s;
-    }
-    .ctrl-btn:hover { background: #1f4080; color: #fff; }
-
-    .ctrl-select {
-      width: 100%;
+    input[type="number"],
+    select {
       background: #16213e;
       color: #a0b8d0;
       border: 1px solid #0f3460;
       border-radius: 4px;
       padding: 5px 8px;
       font-size: 12px;
-      cursor: pointer;
-      margin-top: 4px;
+      width: 100%;
     }
-    .ctrl-select:focus { outline: none; border-color: #4a80c0; }
 
-    .ctrl-checkbox {
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #4a80c0;
+    }
+
+    .checkbox-row {
       display: flex;
       align-items: center;
       gap: 8px;
       cursor: pointer;
-      color: #a0b8d0;
-      font-size: 12px;
-      margin-top: 6px;
       user-select: none;
     }
-    .ctrl-checkbox input { cursor: pointer; accent-color: #53d8fb; }
 
-    .player-color-row input[type="color"] {
-      width: 32px;
-      height: 22px;
+    .checkbox-row input {
+      cursor: pointer;
+      accent-color: #53d8fb;
+    }
+
+    #seed-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    #seed-row input {
+      flex: 1;
+    }
+
+    #randomise-btn {
+      background: #16213e;
+      color: #5a7a9a;
       border: 1px solid #0f3460;
       border-radius: 4px;
-      background: none;
+      padding: 5px 8px;
       cursor: pointer;
-      padding: 1px;
-    }
-
-    /* --- Stats panel --- */
-    #stats-panel {
-      width: 180px;
-      flex-shrink: 0;
-      border-left: 1px solid #0f3460;
-      padding: 14px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      color: #a0b8d0;
-      font-size: 12px;
-      overflow-y: auto;
-    }
-
-    .stats-title {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #5a7a9a;
-      margin-bottom: 4px;
-    }
-
-    .stat-player { display: flex; flex-direction: column; gap: 4px; }
-
-    .stat-name {
       font-size: 11px;
+      white-space: nowrap;
+    }
+
+    #randomise-btn:hover {
+      background: #1f4080;
+      color: #fff;
+    }
+
+    #error-msg {
+      color: #e94560;
+      font-size: 11px;
+      min-height: 16px;
+    }
+
+    #render-btn {
+      width: 100%;
+      background: #e94560;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 9px 0;
+      font-size: 13px;
       font-weight: 600;
       letter-spacing: 0.5px;
-      text-transform: uppercase;
-      margin-bottom: 2px;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 4px;
     }
 
-    .stat-row {
+    #render-btn:hover {
+      background: #ff6b8a;
+    }
+
+    #undo-redo-row {
       display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #7a9ab8;
+      gap: 6px;
     }
-    .stat-row span:last-child { color: #c0d8f0; font-variant-numeric: tabular-nums; }
 
-    /* --- Board --- */
-    #board-panel { flex: 1; position: relative; }
-    #board-panel canvas { display: block; width: 100%; height: 100%; }
-
-    #game-over {
-      display: none;
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-    #game-over.visible { display: flex; }
-    .game-over-box {
+    #undo-redo-row button {
+      flex: 1;
       background: #16213e;
-      border: 2px solid #e94560;
-      border-radius: 12px;
-      padding: 48px 56px;
-      text-align: center;
-      color: #fff;
-    }
-    .game-over-box h2 { font-size: 2rem; margin-bottom: 24px; letter-spacing: 2px; }
-    .game-over-btns { display: flex; gap: 12px; justify-content: center; }
-    .game-over-box button {
-      background: none;
-      color: #fff;
-      border: 1px solid #e94560;
-      border-radius: 6px;
-      padding: 10px 20px;
-      font-size: 0.9rem;
+      color: #a0b8d0;
+      border: 1px solid #0f3460;
+      border-radius: 5px;
+      padding: 7px 0;
+      font-size: 12px;
       cursor: pointer;
       transition: background 0.15s;
     }
-    .game-over-box button:hover { background: #e94560; }
-    .game-over-box button.primary { background: #e94560; }
-    .game-over-box button.primary:hover { background: #ff6b8a; border-color: #ff6b8a; }
+
+    #undo-redo-row button:hover:not(:disabled) {
+      background: #1f4080;
+      color: #fff;
+    }
+
+    #undo-redo-row button:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    /* Hand view */
+    .section-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid #0f3460;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #5a7a9a;
+      flex-shrink: 0;
+    }
+
+    #player-status-list {
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      border-bottom: 1px solid #0f3460;
+      flex-shrink: 0;
+    }
+
+    .player-status-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      padding: 3px 5px;
+      border-radius: 4px;
+    }
+
+    .player-status-row.current {
+      background: #1a2a4a;
+    }
+
+    .player-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .player-label {
+      flex: 1;
+    }
+
+    .player-dead {
+      opacity: 0.4;
+      text-decoration: line-through;
+    }
+
+    .current-badge {
+      font-size: 9px;
+      color: #53d8fb;
+      letter-spacing: 0.5px;
+    }
+
+    #tile-grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tile-card {
+      cursor: pointer;
+      border-radius: 6px;
+      border: 2px solid #1a3a60;
+      background: #0d1b35;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: border-color 0.12s;
+    }
+
+    .tile-card:hover {
+      border-color: #3a6a9a;
+    }
+
+    .tile-card.selected {
+      border-color: #53d8fb;
+      background: #0e2040;
+    }
+
+    .tile-card canvas {
+      display: block;
+    }
+
+    .tile-rotate-row {
+      display: flex;
+      gap: 4px;
+      padding: 3px 4px 2px;
+      width: 100%;
+    }
+
+    .tile-rotate-row button {
+      flex: 1;
+      background: #16213e;
+      color: #5a7a9a;
+      border: 1px solid #1a3a60;
+      border-radius: 3px;
+      padding: 2px 0;
+      font-size: 13px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .tile-rotate-row button:hover {
+      background: #1f4080;
+      color: #fff;
+    }
+
+    #play-area {
+      padding: 10px;
+      border-top: 1px solid #0f3460;
+      flex-shrink: 0;
+    }
+
+    #play-btn {
+      width: 100%;
+      background: #53d8fb;
+      color: #0a0f1e;
+      border: none;
+      border-radius: 5px;
+      padding: 8px 0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: background 0.12s, opacity 0.12s;
+    }
+
+    #play-btn:hover:not(:disabled) {
+      background: #7ae8ff;
+    }
+
+    #play-btn:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    #game-status {
+      margin-top: 7px;
+      font-size: 10px;
+      color: #5a7a9a;
+      text-align: center;
+      min-height: 14px;
+    }
+
+    /* ── Center panel ── */
+    #center-panel {
+      flex: 1;
+      min-width: 0;
+      position: relative;
+    }
+
+    #preview-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #empty-hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #2a3a5a;
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    /* ── Right panel ── */
+    #right-panel {
+      width: 300px;
+      flex-shrink: 0;
+      border-left: 1px solid #0f3460;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.2s ease;
+      position: relative;
+    }
+
+    #right-panel.collapsed {
+      width: 28px;
+    }
+
+    #right-panel.collapsed #right-burger-btn,
+    #right-panel.collapsed #right-panel-title,
+    #right-panel.collapsed .right-view,
+    #right-panel.collapsed .panel-nav {
+      display: none;
+    }
+
+    #right-panel.collapsed .panel-header {
+      padding: 0;
+      justify-content: center;
+      border-bottom: none;
+    }
+
+    .right-view {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .right-view.hidden {
+      display: none;
+    }
+
+    #json-header-row {
+      padding: 6px 12px;
+      border-bottom: 1px solid #0f3460;
+      display: flex;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
+    #json-copy-btn {
+      background: #16213e;
+      color: #5a7a9a;
+      border: 1px solid #0f3460;
+      border-radius: 3px;
+      padding: 2px 7px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    #json-copy-btn:hover {
+      background: #1f4080;
+      color: #fff;
+    }
+
+    #json-output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      margin: 0;
+      font-family: monospace;
+      font-size: 10px;
+      line-height: 1.5;
+      color: #7ab8d8;
+      white-space: pre;
+      background: transparent;
+    }
+
+    #stats-view {
+      padding: 14px;
+      color: #5a7a9a;
+      font-size: 11px;
+    }
   </style>
 </head>
+
 <body>
-  <div id="left-column">
-    <div id="left-header">
-      <button id="menu-btn">
-        <span class="burger">☰</span>
-        <span class="view-name">Hand</span>
-      </button>
-      <div id="menu-dropdown">
-        <button class="menu-item active" data-view="hand">Hand</button>
-        <button class="menu-item"        data-view="settings">Settings</button>
-      </div>
+
+  <!-- Left panel: Options / Hand -->
+  <div id="left-panel">
+    <div class="panel-header">
+      <button class="burger-btn" id="left-burger-btn">&#9776;</button>
+      <span class="panel-title" id="left-panel-title">Options</span>
     </div>
-    <div id="hand-panel"></div>
-    <div id="control-panel"></div>
-  </div>
-  <div id="stats-panel">
-    <div class="stats-title">Statistics</div>
-    <div id="stats-content"></div>
-  </div>
-  <div id="board-panel">
-    <canvas id="game"></canvas>
-    <div id="game-over">
-      <div class="game-over-box">
-        <h2>Game Over</h2>
-        <div class="game-over-btns">
-          <button id="restart-same-btn">Restart this game</button>
-          <button id="restart-new-btn" class="primary">New random game</button>
+    <div class="panel-nav hidden" id="left-panel-nav">
+      <div class="nav-item active" data-target="options-view">Options</div>
+      <div class="nav-item" data-target="hand-view">Hand</div>
+    </div>
+
+    <!-- Options view -->
+    <div id="options-view" class="left-view">
+      <form id="options-form">
+
+        <div class="field">
+          <label for="playerCount">Players</label>
+          <input type="number" id="playerCount" name="playerCount" value="2" min="1" max="6" />
         </div>
+
+        <div class="field">
+          <label for="boardSize">Board Size (radius)</label>
+          <input type="number" id="boardSize" name="boardSize" value="3" min="1" max="10" />
+        </div>
+
+        <div class="field">
+          <label for="handSize">Hand Size</label>
+          <input type="number" id="handSize" name="handSize" value="3" min="1" max="5" />
+        </div>
+
+        <div class="field">
+          <label for="collisionMode">Collision</label>
+          <select id="collisionMode" name="collisionMode">
+            <option value="pass">Pass through</option>
+            <option value="die">Both die</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="winningCondition">Winning Condition</label>
+          <select id="winningCondition" name="winningCondition">
+            <option value="LastManStanding">Last Man Standing</option>
+            <option value="MaxDistance">Max Distance</option>
+            <option value="MaxVelocity">Max Velocity</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="outerConnectors">Outer Connectors</label>
+          <select id="outerConnectors" name="outerConnectors">
+            <option value="All">All</option>
+            <option value="Reduced">Reduced</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="checkbox-row">
+            <input type="checkbox" name="highlightDeadPaths" checked />
+            Highlight dead paths
+          </label>
+        </div>
+
+        <div class="field">
+          <label class="checkbox-row">
+            <input type="checkbox" name="previewMoves" checked />
+            Preview moves
+          </label>
+        </div>
+
+        <div class="field">
+          <label>Seed</label>
+          <div id="seed-row">
+            <input type="number" id="seed-input" placeholder="random" />
+            <button type="button" id="randomise-btn">&#x21BA;</button>
+          </div>
+        </div>
+
+        <div id="error-msg"></div>
+        <button type="button" id="render-btn">Render</button>
+        <div id="undo-redo-row">
+          <button type="button" id="undo-btn" disabled>&#8592; Undo</button>
+          <button type="button" id="redo-btn" disabled>Redo &#8594;</button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Hand view -->
+    <div id="hand-view" class="left-view hidden">
+      <div class="section-header">Players</div>
+      <div id="player-status-list"></div>
+      <div class="section-header">Hand</div>
+      <div id="tile-grid"></div>
+      <div id="play-area">
+        <button id="play-btn" disabled>Play Tile</button>
+        <div id="game-status"></div>
       </div>
     </div>
   </div>
-  <script type="module" src="dist/main.js"></script>
+
+  <!-- Center: board -->
+  <div id="center-panel">
+    <canvas id="preview-canvas"></canvas>
+    <div id="empty-hint">Configure options and click Render</div>
+  </div>
+
+  <!-- Right panel: JSON / Statistics -->
+  <div id="right-panel">
+    <div class="panel-header">
+      <button class="burger-btn" id="right-burger-btn">&#9776;</button>
+      <span class="panel-title" id="right-panel-title">State (JSON)</span>
+      <button class="collapse-btn" id="right-collapse-btn">&#8249;</button>
+    </div>
+    <div class="panel-nav hidden" id="right-panel-nav">
+      <div class="nav-item active" data-target="json-view">State (JSON)</div>
+      <div class="nav-item" data-target="stats-view">Statistics</div>
+    </div>
+
+    <!-- JSON view -->
+    <div id="json-view" class="right-view">
+      <div id="json-header-row">
+        <button id="json-copy-btn">Copy</button>
+      </div>
+      <pre id="json-output"></pre>
+    </div>
+
+    <!-- Statistics view -->
+    <div id="stats-view" class="right-view hidden">
+      <div>Statistics coming soon</div>
+    </div>
+  </div>
+
+  <script type="module" src="dist/preview.js"></script>
+  <script>
+    document.getElementById("randomise-btn").addEventListener("click", () => {
+      document.getElementById("seed-input").value = "";
+    });
+  </script>
 </body>
+
 </html>

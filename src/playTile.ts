@@ -1,6 +1,6 @@
 import type {
   GameBoard, ConnectorTile, BoardConnector,
-  TileCoord, ConnectorId, PathStep, BoardPosition, PlayerTurnHistory,
+  TileCoord, ConnectorId, PathStep, BoardPosition, CollisionMode,
 } from "./types.js";
 
 function tileAt(tiles: GameBoard["tiles"], coord: TileCoord) {
@@ -77,6 +77,34 @@ function walkPath(
   }
 }
 
+function positionKey(coord: TileCoord, connectorId: ConnectorId): string {
+  return `${coord.q},${coord.r},${connectorId}`;
+}
+
+function visitedPositions(steps: PathStep[], finalPosition: BoardPosition | null): Set<string> {
+  const s = new Set<string>();
+  for (const step of steps) {
+    s.add(positionKey(step.coord, step.entry));
+    s.add(positionKey(step.coord, step.exit));
+  }
+  if (finalPosition) s.add(positionKey(finalPosition.coord, finalPosition.connectorId));
+  return s;
+}
+
+// Returns the index of the first step whose entry or exit appears in otherPositions,
+// or steps.length - 1 if only the finalPosition matches (player completed all steps then collided).
+function firstCollisionStep(steps: PathStep[], finalPosition: BoardPosition | null, otherPositions: Set<string>): number | undefined {
+  for (let k = 0; k < steps.length; k++) {
+    const step = steps[k]!;
+    if (otherPositions.has(positionKey(step.coord, step.entry))) return k;
+    if (otherPositions.has(positionKey(step.coord, step.exit))) return k;
+  }
+  if (finalPosition && otherPositions.has(positionKey(finalPosition.coord, finalPosition.connectorId))) {
+    return steps.length - 1;
+  }
+  return undefined;
+}
+
 /**
  * Places `tile` at the current player's position, then walks every active
  * player's path on the updated board and returns a new GameBoard reflecting
@@ -87,6 +115,7 @@ export function playTile(
   playerIndex: number,
   tile: ConnectorTile,
   turn: number,
+  collisionMode: CollisionMode = "pass",
 ): GameBoard {
   const player = board.players[playerIndex];
   if (!player) throw new Error(`Invalid player index: ${playerIndex}`);
@@ -98,28 +127,46 @@ export function playTile(
     e.coord.q === coord.q && e.coord.r === coord.r ? { coord, tile } : e,
   );
 
-  // Board topology (connectors) is unchanged by tile placement
-  const connectors = board.connectors;
+  const updatedBoard: GameBoard = { ...board, tiles, connectors: board.connectors };
 
-  const updatedBoard: GameBoard = { ...board, tiles, connectors };
+  // Walk all alive players
+  const walks = board.players.map(p =>
+    p.isAlive ? walkPath(updatedBoard, p.position) : null,
+  );
 
-  // Recompute positions and histories for all active players against the new board
-  const players = board.players.map(p => {
+  // Detect collisions: players sharing any connector position during this turn both die.
+  // killStep maps player index → index of the first step where the collision occurs.
+  const killStep = new Map<number, number>();
+  if (collisionMode === "die") {
+    const sets = walks.map(w => w && w.steps.length > 0 ? visitedPositions(w.steps, w.finalPosition) : null);
+    for (let i = 0; i < sets.length; i++) {
+      for (let j = i + 1; j < sets.length; j++) {
+        const si = sets[i], sj = sets[j];
+        if (!si || !sj) continue;
+        if (![...si].some(pos => sj.has(pos))) continue;
+        const wi = walks[i]!, wj = walks[j]!;
+        const ki = firstCollisionStep(wi.steps, wi.finalPosition, sj);
+        const kj = firstCollisionStep(wj.steps, wj.finalPosition, si);
+        if (ki !== undefined && ki < (killStep.get(i) ?? Infinity)) killStep.set(i, ki);
+        if (kj !== undefined && kj < (killStep.get(j) ?? Infinity)) killStep.set(j, kj);
+      }
+    }
+  }
+
+  const players = board.players.map((p, pi) => {
     if (!p.isAlive) return p;
+    const walk = walks[pi]!;
+    if (walk.steps.length === 0) return p;
 
-    const { steps, finalPosition } = walkPath(updatedBoard, p.position);
-    if (steps.length === 0) return p;
-
-    const turnEntry: PlayerTurnHistory = { playerIndex, turn, steps };
+    const deathStep = killStep.get(pi);
+    const steps = deathStep !== undefined ? walk.steps.slice(0, deathStep + 1) : walk.steps;
+    const isAlive = walk.finalPosition !== null && deathStep === undefined;
 
     return {
       ...p,
-      isAlive: finalPosition !== null,
-      position: finalPosition ?? p.position,
-      history: {
-        ...p.history,
-        turns: [...p.history.turns, turnEntry],
-      },
+      isAlive,
+      position: walk.finalPosition ?? p.position,
+      history: { ...p.history, turns: [...p.history.turns, { playerIndex, turn, steps }] },
     };
   });
 

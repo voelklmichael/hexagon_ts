@@ -1,7 +1,7 @@
 import type { GameState, ConnectorTile, ConnectorId } from "./types.js";
 import {
-  HEX_SIZE, hexVertices, hexToPixel, edgeConnectors,
-  connectorPosition, mirrorConnector, EDGE_NEIGHBOR,
+  HEX_SIZE, hexVertices, hexToPixel,
+  connectorPosition,
 } from "./hex.js";
 import { playTile } from "./playTile.js";
 
@@ -209,7 +209,7 @@ export function renderGameState(
       selected_tile
         = state.board.players[state.currentPlayer.playerIndex]?.hand[state.currentPlayer.selectedTileIndex];
     } if (selected_tile != null) {
-      board = playTile(state.board, state.currentPlayer.playerIndex, selected_tile, 0);
+      board = playTile(state.board, state.currentPlayer.playerIndex, selected_tile, 0, state.options.collisionMode);
     }
   }
 

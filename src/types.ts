@@ -204,6 +204,11 @@ export type CurrentPlayer = {
   selectedTileIndex: number | null;
 };
 
+export type Statistics = {
+  totalDistance: Record<number, number>;
+  maxVelocity: Record<number, number>;
+};
+
 export type GameState = {
   board: GameBoard;
   history: GameBoard[];
@@ -211,4 +216,5 @@ export type GameState = {
   seed: number;
   rng: Rng;
   currentPlayer: CurrentPlayer;
+  statistics: Statistics;
 };
