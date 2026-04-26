@@ -183,6 +183,7 @@ undoBtn.addEventListener("click", () => {
   if (!undoStack.length || !state) return;
   redoStack.push(serializeState(state, turn));
   stopAnimation();
+  removeGameOverOverlay();
   const { state: prev, turn: prevTurn } = deserializeSnapshot(undoStack.pop()!);
   state = prev;
   turn = prevTurn;
@@ -197,6 +198,7 @@ redoBtn.addEventListener("click", () => {
   if (!redoStack.length || !state) return;
   undoStack.push(serializeState(state, turn));
   stopAnimation();
+  removeGameOverOverlay();
   const { state: next, turn: nextTurn } = deserializeSnapshot(redoStack.pop()!);
   state = next;
   turn = nextTurn;
@@ -275,6 +277,95 @@ function redrawBoard(progress: number = 1.0, currentTurn?: number, playedCoord?:
   }
   renderGameState(state, ctx, canvas.width, canvas.height, progress, currentTurn);
   jsonOutput.textContent = JSON.stringify(state, null, 2);
+}
+
+function checkGameOver(state: GameState): { over: boolean; winners: number[] } {
+  const { board, options, statistics } = state;
+  const alivePlayers = board.players.filter(p => p.isAlive);
+  const aliveCount = alivePlayers.length;
+
+  let over = false;
+  if (options.winningCondition === "LastManStanding") {
+    if (aliveCount <= 1) over = true;
+  } else {
+    if (aliveCount === 0) over = true;
+  }
+
+  if (!over) return { over: false, winners: [] };
+
+  let winners: number[] = [];
+  if (options.winningCondition === "LastManStanding") {
+    if (aliveCount === 1) winners = [alivePlayers[0]!.index];
+  } else {
+    const stats = options.winningCondition === "MaxDistance" ? statistics.totalDistance : statistics.maxVelocity;
+    const values = Object.values(stats);
+    if (values.length > 0) {
+      const max = Math.max(...values);
+      winners = board.players.filter(p => stats[p.index] === max).map(p => p.index);
+    }
+  }
+  return { over: true, winners };
+}
+
+function showGameOverOverlay(winners: number[], state: GameState): void {
+  removeGameOverOverlay();
+
+  // Ensure animation styles exist
+  let styleEl = document.getElementById("game-over-styles") as HTMLStyleElement;
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "game-over-styles";
+    styleEl.textContent = `@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`;
+    document.head.appendChild(styleEl);
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "game-over-overlay";
+  Object.assign(overlay.style, {
+    position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+    backgroundColor: "rgba(10, 10, 26, 0.95)", display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center", zIndex: "10000", color: "white",
+    fontFamily: "system-ui, sans-serif", textAlign: "center", animation: "fadeIn 0.4s ease-out"
+  });
+
+  const title = document.createElement("h1");
+  title.textContent = "GAME OVER";
+  title.style.fontSize = "5rem";
+  title.style.margin = "0";
+  title.style.color = "#e94560";
+  overlay.appendChild(title);
+
+  const result = document.createElement("div");
+  result.style.fontSize = "2.5rem";
+  result.style.marginTop = "20px";
+  if (winners.length === 0) {
+    result.textContent = "DRAW";
+  } else {
+    const names = winners.map(idx => {
+      const p = state.board.players.find(player => player.index === idx);
+      return `<span style="color:${p?.color || 'white'}; font-weight:bold;">Player ${idx + 1}</span>`;
+    }).join(" & ");
+    result.innerHTML = winners.length === 1 ? `${names} Wins!` : `${names} Win!`;
+  }
+  overlay.appendChild(result);
+
+  const btn = document.createElement("button");
+  btn.textContent = "NEW GAME";
+  Object.assign(btn.style, {
+    marginTop: "50px", padding: "15px 40px", fontSize: "1.2rem", cursor: "pointer",
+    backgroundColor: "#53d8fb", border: "none", color: "#16213e", borderRadius: "50px", fontWeight: "bold"
+  });
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    removeGameOverOverlay();
+    restart();
+  };
+  overlay.appendChild(btn);
+  document.body.appendChild(overlay);
+}
+
+function removeGameOverOverlay() {
+  document.getElementById("game-over-overlay")?.remove();
 }
 
 function rotateTileInHand(pi: number, tileIdx: number, steps: number): void {
@@ -403,6 +494,7 @@ tileGrid.addEventListener("dblclick", e => {
 function playSelectedTile(): void {
   if (!state || state.currentPlayer.selectedTileIndex === null) return;
 
+  stopAnimation();
   undoStack.push(serializeState(state, turn));
   redoStack.length = 0;
   syncUndoRedo();
@@ -430,9 +522,17 @@ function playSelectedTile(): void {
   state.currentPlayer = { playerIndex: nextIdx === -1 ? playerIndex : nextIdx, selectedTileIndex: null };
 
   persistState();
-  startAnimation();
   renderStats();
   renderHandPanel();
+
+  const result = checkGameOver(state);
+  if (result.over) {
+    stopAnimation();
+    redrawBoard();
+    showGameOverOverlay(result.winners, state);
+  } else {
+    startAnimation();
+  }
 }
 
 playBtn.addEventListener("click", playSelectedTile);
@@ -499,6 +599,7 @@ function computeStatistics(board: GameBoard): Statistics {
 function render(): void {
   errorEl.textContent = "";
   stopAnimation();
+  removeGameOverOverlay();
 
   const options = readOptions();
   const seedInput = document.getElementById("seed-input") as HTMLInputElement;
@@ -542,6 +643,7 @@ function render(): void {
 function restart(): void {
   if (!state) return;
   stopAnimation();
+  removeGameOverOverlay();
 
   const rng = new Rng(state.seed);
   let board;
