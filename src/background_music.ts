@@ -3,7 +3,12 @@
 // and that the paths are relative to the root of your website.
 const TRACKS = [
     { name: "Playful Night", src: "private_assets/alexzavesa-dance-playful-night-510786.mp3" },
-    { name: "Charming Phonk", src: "private_assets/freemusiclab-charming-phonk-i-free-background-music-i-free-music-lab-release-513626.mp3" },
+    { name: "Phonk", src: "private_assets/freemusiclab-charming-phonk-i-free-background-music-i-free-music-lab-release-513626.mp3" },
+    { name: "Happy Corporate", src: "private_assets/kornevmusic-upbeat-happy-corporate-487426.mp3" },
+    { name: "Joyful", src: "private_assets/lightbeatsmusic-joyful-rhythm-walk-funk-513936.mp3" },
+    { name: "magpiemusic", src: "private_assets/magpiemusic-action-race-rock-music-513682.mp3" },
+    { name: "miromaxmusic", src: "private_assets/miromaxmusic-music-promotion-no-copyright-513944.mp3" },
+    { name: "starostin", src: "private_assets/starostin-comedy-cartoon-funny-background-music-492540.mp3" },
 ];
 
 let currentTrackIdx = 0;
