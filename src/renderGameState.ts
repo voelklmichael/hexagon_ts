@@ -203,6 +203,7 @@ export function renderGameState(
   width: number,
   height: number,
   animationProgress: number = 1.0,
+  currentTurn?: number,
 ): void {
   const originX = width / 2;
   const originY = height / 2;
@@ -427,9 +428,14 @@ export function renderGameState(
     if (!player.isAlive) continue;
 
     const lastTurn = player.history.turns[player.history.turns.length - 1];
-    let markerPos: [number, number] | null = null;
+    const isMovingThisTurn =
+      animationProgress < 1.0 &&
+      lastTurn != null &&
+      lastTurn.isAnimated &&
+      (currentTurn === undefined || lastTurn.turn === currentTurn);
 
-    if (animationProgress < 1.0 && lastTurn != null) {
+    let markerPos: [number, number] | null = null;
+    if (isMovingThisTurn) {
       const totalWeight = lastTurn.steps.reduce((acc, s) => acc + s.weight, 0);
       const targetWeight = animationProgress * totalWeight;
       let currentWeight = 0;

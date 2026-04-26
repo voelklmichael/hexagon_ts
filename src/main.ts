@@ -273,7 +273,7 @@ function redrawBoard(progress: number = 1.0, currentTurn?: number, playedCoord?:
     requestAnimationFrame(() => redrawBoard(progress, currentTurn, playedCoord));
     return;
   }
-  renderGameState(state, ctx, canvas.width, canvas.height, progress,);
+  renderGameState(state, ctx, canvas.width, canvas.height, progress, currentTurn);
   jsonOutput.textContent = JSON.stringify(state, null, 2);
 }
 
