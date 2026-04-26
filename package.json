@@ -1,10 +1,13 @@
 {
+  "name": "hexagon-path",
+  "version": "1.0.0",
+  "description": "A strategic path-building game on a hexagonal grid.",
+  "type": "module",
   "scripts": {
     "build": "tsc",
-    "watch": "tsc --watch",
-    "serve": "npx serve ."
+    "watch": "tsc -w"
   },
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^5.0.0"
   }
 }
