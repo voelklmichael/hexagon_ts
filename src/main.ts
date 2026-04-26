@@ -1,31 +1,31 @@
 import {
-  HEX_SIZE, HexagonTile, ConnectorId, Rng,
+  HEX_SIZE, HexagonTile, ConnectorId,
   hexVertices, hexToPixel, edgeConnectors, connectorPosition,
-  generateGrid, randomHexagonTile, rotateTile, makeRng,
+  generateGrid, randomHexagonTile, rotateTile,
   followPath, mirrorConnector, EDGE_NEIGHBOR,
 } from "./hex.js";
 
 // --- Colors / constants ---
 
 const COLORS = {
-  hexFill:     "#16213e",
-  hexStroke:   "#0f3460",
-  hexHover:    "#1f4080",
-  placedFill:  "#0d1b35",
-  placedStroke:"#1a4080",
-  handFill:    "#1a2a4a",
-  handStroke:  "#2255aa",
-  connector:   "#e94560",
-  path:        "#53d8fb",
-  deadPath:    "#3a3a52",
-  crash:       "#ffffff",
+  hexFill: "#16213e",
+  hexStroke: "#0f3460",
+  hexHover: "#1f4080",
+  placedFill: "#0d1b35",
+  placedStroke: "#1a4080",
+  handFill: "#1a2a4a",
+  handStroke: "#2255aa",
+  connector: "#e94560",
+  path: "#53d8fb",
+  deadPath: "#3a3a52",
+  crash: "#ffffff",
 };
 
 const CONNECTOR_RADIUS = 3.5;
-const GRID_RADIUS      = 3;
-const HAND_HEX_SIZE    = 52;
-const HAND_SIZE        = 3;
-const ANIM_DURATION    = 1500;
+const GRID_RADIUS = 3;
+const HAND_HEX_SIZE = 52;
+const HAND_SIZE = 3;
+const ANIM_DURATION = 1500;
 
 // --- Settings ---
 
@@ -35,7 +35,7 @@ type CollisionMode = "pass" | "die";
 let collisionMode: CollisionMode = "pass";
 
 const DEFAULT_COLORS = ["#00e676", "#ff6b6b", "#ffd93d", "#6bceff"];
-let playerCount  = 2;
+let playerCount = 2;
 let playerColors = [...DEFAULT_COLORS];
 
 function playerColor(idx = 0): string {
@@ -45,8 +45,8 @@ function playerColor(idx = 0): string {
 // --- DOM ---
 
 const boardCanvas = document.getElementById("game") as HTMLCanvasElement;
-const boardCtx    = boardCanvas.getContext("2d")!;
-const gameOverEl  = document.getElementById("game-over")!;
+const boardCtx = boardCanvas.getContext("2d")!;
+const gameOverEl = document.getElementById("game-over")!;
 document.getElementById("restart-same-btn")!.addEventListener("click", restartCurrentGame);
 document.getElementById("restart-new-btn")!.addEventListener("click", restartGame);
 
@@ -57,17 +57,17 @@ const cells = generateGrid(GRID_RADIUS);
 interface PlayerPos { q: number; r: number; connectorId: ConnectorId; }
 
 interface Player {
-  pos:           PlayerPos;
-  hand:          HexagonTile[];
+  pos: PlayerPos;
+  hand: HexagonTile[];
   selectedIndex: number | null;
   traveledPaths: Map<string, [ConnectorId, ConnectorId][]>;
-  isOut:         boolean;
+  isOut: boolean;
   totalDistance: number; // total path segments traveled
-  maxVelocity:   number; // max segments in a single move
+  maxVelocity: number; // max segments in a single move
 }
 
 interface InitialGameState {
-  seed:           number;
+  seed: number;
   startPositions: PlayerPos[];
 }
 
@@ -77,42 +77,42 @@ interface ChainStep {
 }
 
 interface Preview {
-  tile:     HexagonTile;
-  chain:    ChainStep[];
+  tile: HexagonTile;
+  chain: ChainStep[];
   finalPos: PlayerPos | null;
 }
 
 interface PendingMove {
   playerIdx: number;
-  chain:     ChainStep[];
-  finalPos:  PlayerPos | null;
+  chain: ChainStep[];
+  finalPos: PlayerPos | null;
 }
 
 interface AnimSegment {
   fromX: number; fromY: number;
   ctrlX: number; ctrlY: number;
-  toX:   number; toY:   number;
+  toX: number; toY: number;
 }
 
 interface CrashEvent {
   players: [number, number];
-  t:       number;           // normalized [0,1]
-  pixel:   [number, number];
+  t: number;           // normalized [0,1]
+  pixel: [number, number];
 }
 
 // --- Game state ---
 
 const placedTiles = new Map<string, HexagonTile>();
-let players:          Player[]      = [];
-let currentPlayerIdx: number        = 0;
-let pendingMoves:     PendingMove[] = [];
-let crashSites:       [number, number][] = [];
-let initialState:     InitialGameState;
-let rng:              Rng;
-let preview:          Preview | null = null;
+let players: Player[] = [];
+let currentPlayerIdx: number = 0;
+let pendingMoves: PendingMove[] = [];
+let crashSites: [number, number][] = [];
+let initialState: InitialGameState;
+let rng: Rng;
+let preview: Preview | null = null;
 
 const tileCanvases: HTMLCanvasElement[] = [];
-const midButtons:   HTMLButtonElement[] = [];
+const midButtons: HTMLButtonElement[] = [];
 
 function cellKey(q: number, r: number): string { return `${q},${r}`; }
 function curPlayer(): Player { return players[currentPlayerIdx]!; }
@@ -135,7 +135,7 @@ function getOuterConnectors(): PlayerPos[] {
     for (let edge = 0; edge < 6; edge++) {
       const [dq, dr] = EDGE_NEIGHBOR[edge]!;
       if (!isInGrid(cell.q + dq, cell.r + dr)) {
-        result.push({ q: cell.q, r: cell.r, connectorId: (edge * 2)     as ConnectorId });
+        result.push({ q: cell.q, r: cell.r, connectorId: (edge * 2) as ConnectorId });
         result.push({ q: cell.q, r: cell.r, connectorId: (edge * 2 + 1) as ConnectorId });
       }
     }
@@ -190,7 +190,7 @@ function drawXMarker(ctx: CanvasRenderingContext2D, mx: number, my: number, angl
   ctx.lineCap = "round";
   ctx.beginPath();
   ctx.moveTo(-arm, -arm); ctx.lineTo(arm, arm);
-  ctx.moveTo( arm, -arm); ctx.lineTo(-arm, arm);
+  ctx.moveTo(arm, -arm); ctx.lineTo(-arm, arm);
   ctx.stroke();
   ctx.restore();
 }
@@ -253,14 +253,14 @@ function drawMarker(ctx: CanvasRenderingContext2D, px: number, py: number, color
 
 interface PlayerChainPreview {
   playerIdx: number;
-  chain:     ChainStep[];
-  finalPos:  PlayerPos | null;
+  chain: ChainStep[];
+  finalPos: PlayerPos | null;
 }
 
 interface Preview {
-  tile:      HexagonTile;
-  chain:     ChainStep[];        // current player's chain (also in allChains)
-  finalPos:  PlayerPos | null;
+  tile: HexagonTile;
+  chain: ChainStep[];        // current player's chain (also in allChains)
+  finalPos: PlayerPos | null;
   allChains: PlayerChainPreview[];
 }
 
@@ -319,14 +319,14 @@ function bezier(t: number, p0: number, p1: number, p2: number): number {
 }
 
 function buildAnimSegments(chain: ChainStep[]): AnimSegment[] {
-  const originX = boardCanvas.width  / 2;
+  const originX = boardCanvas.width / 2;
   const originY = boardCanvas.height / 2;
   return chain.map(step => {
     const [cx, cy] = hexToPixel(step.q, step.r, HEX_SIZE);
     const px = originX + cx;
     const py = originY + cy;
     const [fromX, fromY] = connectorPosition(px, py, HEX_SIZE, step.entry);
-    const [toX,   toY  ] = connectorPosition(px, py, HEX_SIZE, step.exit);
+    const [toX, toY] = connectorPosition(px, py, HEX_SIZE, step.exit);
     return { fromX, fromY, ctrlX: px, ctrlY: py, toX, toY };
   });
 }
@@ -336,7 +336,7 @@ function chainPosition(segments: AnimSegment[], t: number): [number, number] {
   const scaled = t * segments.length;
   const segIdx = Math.min(Math.floor(scaled), segments.length - 1);
   const localT = scaled - segIdx;
-  const seg    = segments[segIdx]!;
+  const seg = segments[segIdx]!;
   return [
     bezier(localT, seg.fromX, seg.ctrlX, seg.toX),
     bezier(localT, seg.fromY, seg.ctrlY, seg.toY),
@@ -344,12 +344,12 @@ function chainPosition(segments: AnimSegment[], t: number): [number, number] {
 }
 
 function startMultiAnimation(
-  allSegments:    AnimSegment[][],
+  allSegments: AnimSegment[][],
   pendingCrashes: CrashEvent[],
-  onComplete:     () => void,
+  onComplete: () => void,
 ): void {
-  isAnimating    = true;
-  animPlayersXY  = players.map(() => null);
+  isAnimating = true;
+  animPlayersXY = players.map(() => null);
   let start: number | null = null;
 
   function tick(now: number): void {
@@ -357,9 +357,9 @@ function startMultiAnimation(
     const t = Math.min((now - start) / ANIM_DURATION, 1);
 
     for (let i = 0; i < players.length; i++) {
-      const segs  = allSegments[i] ?? [];
+      const segs = allSegments[i] ?? [];
       if (segs.length === 0) { animPlayersXY[i] = null; continue; }
-      const crash   = pendingCrashes.find(c => c.players.includes(i));
+      const crash = pendingCrashes.find(c => c.players.includes(i));
       const tPlayer = crash ? Math.min(t, crash.t) : t;
       animPlayersXY[i] = chainPosition(segs, tPlayer);
     }
@@ -369,7 +369,7 @@ function startMultiAnimation(
     if (t < 1) {
       requestAnimationFrame(tick);
     } else {
-      isAnimating   = false;
+      isAnimating = false;
       animPlayersXY = [];
       onComplete();
     }
@@ -391,7 +391,7 @@ function detectCrashes(allSegments: AnimSegment[][]): CrashEvent[] {
       if (!moveA || !moveB) continue;
 
       const chainA = moveA.chain, chainB = moveB.chain;
-      const n_A = chainA.length,  n_B = chainB.length;
+      const n_A = chainA.length, n_B = chainB.length;
       const segsA = allSegments[a]!;
 
       let earliest: CrashEvent | null = null;
@@ -403,8 +403,8 @@ function detectCrashes(allSegments: AnimSegment[][]): CrashEvent[] {
           if (sA.q !== sB.q || sA.r !== sB.r) continue;
           if (sA.entry !== sB.exit || sA.exit !== sB.entry) continue;
 
-          const t       = (1 + i + j) / (n_A + n_B);
-          const localA  = t * n_A - i;
+          const t = (1 + i + j) / (n_A + n_B);
+          const localA = t * n_A - i;
           if (localA < 0 || localA > 1) continue;
           if (earliest && t >= earliest.t) continue;
 
@@ -425,7 +425,7 @@ function detectCrashes(allSegments: AnimSegment[][]): CrashEvent[] {
         for (let j = 0; j < n_B; j++) {
           const sA = chainA[i]!, sB = chainB[j]!;
           const tA = (i + 1) / n_A;
-          const tB = j       / n_B;
+          const tB = j / n_B;
 
           const exitEdge = Math.floor(sA.exit / 2);
           const [dq, dr] = EDGE_NEIGHBOR[exitEdge]!;
@@ -464,7 +464,7 @@ function playTile(): void {
 
   // Record traveled paths for current player
   for (const step of preview.chain) {
-    const key  = cellKey(step.q, step.r);
+    const key = cellKey(step.q, step.r);
     const list = player.traveledPaths.get(key) ?? [];
     list.push([step.entry, step.exit]);
     player.traveledPaths.set(key, list);
@@ -481,7 +481,7 @@ function playTile(): void {
       const move = computePlayerChain(i, p.pos);
       // Record any traveled paths for other players who actually move
       for (const step of move.chain) {
-        const key  = cellKey(step.q, step.r);
+        const key = cellKey(step.q, step.r);
         const list = p.traveledPaths.get(key) ?? [];
         list.push([step.entry, step.exit]);
         p.traveledPaths.set(key, list);
@@ -495,7 +495,7 @@ function playTile(): void {
     const p = players[move.playerIdx]!;
     if (move.chain.length > 0) {
       p.totalDistance += move.chain.length;
-      p.maxVelocity    = Math.max(p.maxVelocity, move.chain.length);
+      p.maxVelocity = Math.max(p.maxVelocity, move.chain.length);
     }
   }
 
@@ -558,22 +558,22 @@ function triggerGameOver(): void {
 
 function resetState(state: InitialGameState): void {
   placedTiles.clear();
-  crashSites  = [];
+  crashSites = [];
   pendingMoves = [];
-  rng = makeRng(state.seed);
+  rng = new Rng(state.seed);
 
   players = state.startPositions.map(pos => ({
     pos,
-    hand:          Array.from({ length: HAND_SIZE }, () => randomHexagonTile(rng)),
+    hand: Array.from({ length: HAND_SIZE }, () => randomHexagonTile(rng)),
     selectedIndex: null,
     traveledPaths: new Map(),
-    isOut:         false,
+    isOut: false,
     totalDistance: 0,
-    maxVelocity:   0,
+    maxVelocity: 0,
   }));
 
   currentPlayerIdx = 0;
-  preview          = null;
+  preview = null;
   gameOverEl.classList.remove("visible");
   renderBoard();
   renderHand();
@@ -582,10 +582,10 @@ function resetState(state: InitialGameState): void {
 
 function restartGame(): void {
   const outer = getOuterConnectors();
-  const seed  = (Math.random() * 0x100000000) >>> 0;
-  const tempRng = makeRng(seed);
+  const seed = (Math.random() * 0x100000000) >>> 0;
+  const tempRng = new Rng(seed);
   // Pick distinct random start positions for each player
-  const shuffled = [...outer].sort(() => tempRng() - 0.5);
+  const shuffled = [...outer].sort(() => tempRng.next() - 0.5);
   initialState = {
     seed,
     startPositions: Array.from({ length: playerCount }, (_, i) => shuffled[i % shuffled.length]!),
@@ -600,8 +600,8 @@ function restartCurrentGame(): void {
 // --- Board rendering ---
 
 function renderBoard(): void {
-  const w       = boardCanvas.width;
-  const h       = boardCanvas.height;
+  const w = boardCanvas.width;
+  const h = boardCanvas.height;
   const originX = w / 2;
   const originY = h / 2;
 
@@ -610,9 +610,9 @@ function renderBoard(): void {
   // All players' preview chains (only when not animating)
   const allPreviewChains = (!isAnimating && preview) ? preview.allChains : [];
   // Use current player's chain for the hex-border highlight
-  const curPreviewChain  = allPreviewChains.find(c => c.playerIdx === currentPlayerIdx)?.chain ?? [];
-  const chainKeys        = new Set(curPreviewChain.map(s => cellKey(s.q, s.r)));
-  const previewGameOver  = preview !== null && preview.finalPos === null;
+  const curPreviewChain = allPreviewChains.find(c => c.playerIdx === currentPlayerIdx)?.chain ?? [];
+  const chainKeys = new Set(curPreviewChain.map(s => cellKey(s.q, s.r)));
+  const previewGameOver = preview !== null && preview.finalPos === null;
 
   // Live-connector flood-fill.
   // Seed: every connector on a placed tile whose edge faces an empty in-grid cell.
@@ -631,7 +631,7 @@ function renderBoard(): void {
         if (isInGrid(nq, nr) && !placedTiles.has(cellKey(nq, nr))) {
           // This edge faces an empty cell — both connectors on it are live seeds
           queue.push(
-            { q: qs, r: rs, c: (edge * 2)     as ConnectorId },
+            { q: qs, r: rs, c: (edge * 2) as ConnectorId },
             { q: qs, r: rs, c: (edge * 2 + 1) as ConnectorId },
           );
         }
@@ -640,7 +640,7 @@ function renderBoard(): void {
 
     while (queue.length) {
       const item = queue.pop()!;
-      const k    = lk(item.q, item.r, item.c);
+      const k = lk(item.q, item.r, item.c);
       if (liveConnectors.has(k)) continue;
       liveConnectors.add(k);
 
@@ -653,7 +653,7 @@ function renderBoard(): void {
 
       // Propagate across each edge: current connector's edge AND paired connector's edge
       for (const c of [item.c, paired] as ConnectorId[]) {
-        const edge     = Math.floor(c / 2);
+        const edge = Math.floor(c / 2);
         const [dq, dr] = EDGE_NEIGHBOR[edge]!;
         const nq = item.q + dq, nr = item.r + dr;
         if (isInGrid(nq, nr) && placedTiles.has(cellKey(nq, nr))) {
@@ -666,21 +666,21 @@ function renderBoard(): void {
   // Draw cells
   for (const cell of cells) {
     const [cx, cy] = hexToPixel(cell.q, cell.r, HEX_SIZE);
-    const px       = originX + cx;
-    const py       = originY + cy;
-    const placed   = placedTiles.get(cellKey(cell.q, cell.r));
-    const inChain  = chainKeys.has(cellKey(cell.q, cell.r));
+    const px = originX + cx;
+    const py = originY + cy;
+    const placed = placedTiles.get(cellKey(cell.q, cell.r));
+    const inChain = chainKeys.has(cellKey(cell.q, cell.r));
 
     drawHexShape(boardCtx, px, py, HEX_SIZE,
-      placed  ? COLORS.placedFill : COLORS.hexFill,
+      placed ? COLORS.placedFill : COLORS.hexFill,
       inChain && previewGameOver ? "#e9456088" :
-      inChain                    ? "#53d8fb44" :
-      placed                     ? COLORS.placedStroke : COLORS.hexStroke);
+        inChain ? "#53d8fb44" :
+          placed ? COLORS.placedStroke : COLORS.hexStroke);
 
     if (placed) {
       for (const [a, b] of placed.paths) {
         const live = liveConnectors.has(`${cell.q},${cell.r},${a}`) &&
-                     liveConnectors.has(`${cell.q},${cell.r},${b}`);
+          liveConnectors.has(`${cell.q},${cell.r},${b}`);
         drawPath(boardCtx, px, py, HEX_SIZE, a, b, (highlightDeadPaths && !live) ? COLORS.deadPath : COLORS.path);
       }
     }
@@ -719,8 +719,8 @@ function renderBoard(): void {
   if (!isAnimating) {
     for (const pc of allPreviewChains) {
       if (!pc.finalPos) continue;
-      const fp         = pc.finalPos;
-      const [cx, cy]   = hexToPixel(fp.q, fp.r, HEX_SIZE);
+      const fp = pc.finalPos;
+      const [cx, cy] = hexToPixel(fp.q, fp.r, HEX_SIZE);
       const [gpx, gpy] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, fp.connectorId);
       boardCtx.globalAlpha = 0.4;
       boardCtx.beginPath();
@@ -754,7 +754,7 @@ function renderBoard(): void {
       drawMarker(boardCtx, animXY[0], animXY[1], playerColor(pi));
     } else if (!p.isOut) {
       // Draw at static position — even during animation if this player isn't moving
-      const [cx, cy]   = hexToPixel(p.pos.q, p.pos.r, HEX_SIZE);
+      const [cx, cy] = hexToPixel(p.pos.q, p.pos.r, HEX_SIZE);
       const [mpx, mpy] = connectorPosition(originX + cx, originY + cy, HEX_SIZE, p.pos.connectorId);
       drawMarker(boardCtx, mpx, mpy, playerColor(pi));
     }
@@ -766,13 +766,13 @@ function renderBoard(): void {
 function renderTile(index: number): void {
   const canvas = tileCanvases[index];
   if (!canvas) return;
-  canvas.width  = canvas.clientWidth;
+  canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
-  const ctx     = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const cx = canvas.width  / 2;
+  const cx = canvas.width / 2;
   const cy = canvas.height / 2;
-  const player     = curPlayer();
+  const player = curPlayer();
   const isSelected = player.selectedIndex === index;
   drawHexShape(ctx, cx, cy, HAND_HEX_SIZE,
     isSelected ? "#1f3a6e" : COLORS.handFill,
@@ -790,17 +790,17 @@ function updateMidButton(index: number): void {
   if (!btn) return;
   const isSelected = curPlayer().selectedIndex === index;
   btn.textContent = isSelected ? "Play" : "Select";
-  btn.className   = isSelected ? "btn-play" : "btn-select";
+  btn.className = isSelected ? "btn-play" : "btn-select";
 }
 
 function renderHand(): void {
   // Update player indicator
   const indicator = document.getElementById("player-indicator");
   if (indicator) {
-    const n     = currentPlayerIdx + 1;
+    const n = currentPlayerIdx + 1;
     const color = playerColor(currentPlayerIdx);
     indicator.textContent = playerCount > 1 ? `Player ${n}` : "";
-    indicator.style.color  = color;
+    indicator.style.color = color;
     indicator.style.borderBottomColor = color;
   }
   for (let i = 0; i < HAND_SIZE; i++) {
@@ -815,7 +815,7 @@ function buildHandSlots(): void {
   const panel = document.getElementById("hand-panel")!;
   panel.innerHTML = "";
   tileCanvases.length = 0;
-  midButtons.length   = 0;
+  midButtons.length = 0;
 
   // Player indicator row
   const indicator = document.createElement("div");
@@ -846,7 +846,7 @@ function buildHandSlots(): void {
 
     const btnMid = document.createElement("button");
     btnMid.textContent = "Select";
-    btnMid.className   = "btn-select";
+    btnMid.className = "btn-select";
     midButtons.push(btnMid);
     btnMid.addEventListener("click", () => {
       if (curPlayer().selectedIndex === i) {
@@ -889,7 +889,7 @@ function renderStats(): void {
     block.className = "stat-player";
 
     const name = document.createElement("div");
-    name.className   = "stat-name";
+    name.className = "stat-name";
     name.textContent = `Player ${i + 1}`;
     name.style.color = playerColor(i);
 
@@ -914,8 +914,8 @@ function buildControlPanel(): void {
 
   // Player count
   const countSection = document.createElement("div");
-  const countLabel   = document.createElement("div");
-  countLabel.className   = "ctrl-label";
+  const countLabel = document.createElement("div");
+  countLabel.className = "ctrl-label";
   countLabel.textContent = "Players";
   const countBtns = document.createElement("div");
   countBtns.className = "count-btns";
@@ -930,19 +930,19 @@ function buildControlPanel(): void {
 
   // Player colors
   const colorsSection = document.createElement("div");
-  const colorsLabel   = document.createElement("div");
-  colorsLabel.className   = "ctrl-label";
+  const colorsLabel = document.createElement("div");
+  colorsLabel.className = "ctrl-label";
   colorsLabel.textContent = "Player Colors";
   const colorRows = document.createElement("div");
   colorRows.className = "player-color-rows";
   for (let i = 0; i < playerCount; i++) {
-    const row   = document.createElement("div");
+    const row = document.createElement("div");
     row.className = "player-color-row";
     const label = document.createElement("span");
-    label.textContent  = `P${i + 1}`;
-    label.style.color  = playerColors[i]!;
+    label.textContent = `P${i + 1}`;
+    label.style.color = playerColors[i]!;
     const input = document.createElement("input");
-    input.type  = "color";
+    input.type = "color";
     input.value = playerColors[i]!;
     input.addEventListener("input", () => {
       playerColors[i] = input.value;
@@ -957,16 +957,16 @@ function buildControlPanel(): void {
 
   // Collision mode (only relevant for ≥ 2 players)
   const collisionSection = document.createElement("div");
-  const collisionLabel   = document.createElement("div");
-  collisionLabel.className   = "ctrl-label";
+  const collisionLabel = document.createElement("div");
+  collisionLabel.className = "ctrl-label";
   collisionLabel.textContent = "Collision";
   const select = document.createElement("select");
   select.className = "ctrl-select";
   const opt1 = document.createElement("option");
-  opt1.value       = "pass";
+  opt1.value = "pass";
   opt1.textContent = "Pass through (colors mix)";
   const opt2 = document.createElement("option");
-  opt2.value       = "die";
+  opt2.value = "die";
   opt2.textContent = "Both players die";
   select.append(opt1, opt2);
   select.value = collisionMode;
@@ -975,28 +975,28 @@ function buildControlPanel(): void {
 
   // Game buttons
   const gameSection = document.createElement("div");
-  const gameLabel   = document.createElement("div");
-  gameLabel.className   = "ctrl-label";
+  const gameLabel = document.createElement("div");
+  gameLabel.className = "ctrl-label";
   gameLabel.textContent = "Game";
   const btnRestart = document.createElement("button");
   btnRestart.textContent = "Restart this game";
-  btnRestart.className   = "ctrl-btn";
+  btnRestart.className = "ctrl-btn";
   btnRestart.addEventListener("click", restartCurrentGame);
   const btnNew = document.createElement("button");
   btnNew.textContent = "New random game";
-  btnNew.className   = "ctrl-btn";
+  btnNew.className = "ctrl-btn";
   btnNew.addEventListener("click", restartGame);
   gameSection.append(gameLabel, btnRestart, btnNew);
 
   // Display options
   const displaySection = document.createElement("div");
-  const displayLabel   = document.createElement("div");
-  displayLabel.className   = "ctrl-label";
+  const displayLabel = document.createElement("div");
+  displayLabel.className = "ctrl-label";
   displayLabel.textContent = "Display";
-  const deadPathLabel  = document.createElement("label");
+  const deadPathLabel = document.createElement("label");
   deadPathLabel.className = "ctrl-checkbox";
-  const deadPathCheck  = document.createElement("input");
-  deadPathCheck.type    = "checkbox";
+  const deadPathCheck = document.createElement("input");
+  deadPathCheck.type = "checkbox";
   deadPathCheck.checked = highlightDeadPaths;
   deadPathCheck.addEventListener("change", () => {
     highlightDeadPaths = deadPathCheck.checked;
@@ -1011,12 +1011,12 @@ function buildControlPanel(): void {
 // --- Menu ---
 
 function initMenu(): void {
-  const handPanel    = document.getElementById("hand-panel")!;
+  const handPanel = document.getElementById("hand-panel")!;
   const controlPanel = document.getElementById("control-panel")!;
-  const menuBtn      = document.getElementById("menu-btn")!;
-  const dropdown     = document.getElementById("menu-dropdown")!;
-  const viewName     = menuBtn.querySelector(".view-name")!;
-  const items        = dropdown.querySelectorAll<HTMLButtonElement>(".menu-item");
+  const menuBtn = document.getElementById("menu-btn")!;
+  const dropdown = document.getElementById("menu-dropdown")!;
+  const viewName = menuBtn.querySelector(".view-name")!;
+  const items = dropdown.querySelectorAll<HTMLButtonElement>(".menu-item");
 
   function selectView(view: string): void {
     const isHand = view === "hand";
@@ -1040,7 +1040,7 @@ function initMenu(): void {
 // --- Resize ---
 
 window.addEventListener("resize", () => {
-  boardCanvas.width  = boardCanvas.clientWidth;
+  boardCanvas.width = boardCanvas.clientWidth;
   boardCanvas.height = boardCanvas.clientHeight;
   renderBoard();
   renderHand();
@@ -1051,7 +1051,7 @@ window.addEventListener("resize", () => {
 buildHandSlots();
 buildControlPanel();
 initMenu();
-boardCanvas.width  = boardCanvas.clientWidth;
+boardCanvas.width = boardCanvas.clientWidth;
 boardCanvas.height = boardCanvas.clientHeight;
 restartGame();
 renderHand();

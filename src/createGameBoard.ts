@@ -5,6 +5,7 @@ import type {
 } from "./types.js";
 import type { StandardGameOptions } from "./standardGameOptions.js";
 import { generateGrid, randomHexagonTile, mirrorConnector, EDGE_NEIGHBOR } from "./hex.js";
+import { Rng } from "./random_number_generator.js";
 
 const DEFAULT_COLORS = ["#00e676", "#ff6b6b", "#ffd93d", "#6bceff", "#c77dff", "#ff9f1c"];
 
@@ -62,17 +63,17 @@ export function createStandardGameBoard(options: StandardGameOptions, rng: Rng):
   if (options.outerConnectors === "Reduced") {
     for (const cell of cells) {
       for (let edge = 0; edge < 6; edge++) {
-        if (edge != 1 && edge != 5) { continue; }
+        if (edge != 0 && edge != 5) { continue; }
         const [dq, dr] = EDGE_NEIGHBOR[edge]!;
         if (isInGrid(cell.q + dq, cell.r + dr)) continue;
 
         // Next outer edge clockwise: try same cell first, else cross to neighbour.
-        const ep = (edge + 1) % 6;
+        const ep = (edge + 5) % 6;
         const [ndq, ndr] = EDGE_NEIGHBOR[ep]!;
         const nq = cell.q + ndq, nr = cell.r + ndr;
-        const [nextQ, nextR, nextEdge] = isInGrid(nq, nr)
-          ? [nq, nr, (edge + 5) % 6]
-          : [cell.q, cell.r, ep];
+        const [nextQ, nextR, nextEdge] =
+          [nq, nr, (edge + 1) % 6]
+          ;
 
         const lm: LongMovement = {
           kind: "long_movement",

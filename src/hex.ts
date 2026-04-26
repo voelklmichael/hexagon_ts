@@ -5,6 +5,8 @@
 //    4       1
 //      3   2
 
+import { Rng } from "./random_number_generator";
+
 export const HEX_SIZE = 48;
 
 export function hexVertices(cx: number, cy: number, size: number): [number, number][] {

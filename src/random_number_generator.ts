@@ -1,4 +1,4 @@
-class Rng {
+export class Rng {
     seed: number;
     count: number = 0;
     constructor(seed: number) {
@@ -14,3 +14,4 @@ class Rng {
         return ((t ^ (t >>> 14)) >>> 0) / 0x100000000;
     }
 }
+

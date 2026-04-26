@@ -2,7 +2,8 @@ import type { StandardGameOptions } from "./standardGameOptions.js";
 import type { GameState } from "./types.js";
 import { createStandardGameBoard } from "./createGameBoard.js";
 import { renderGameState } from "./renderGameState.js";
-import { makeRng } from "./hex.js";
+import { Rng } from "./random_number_generator.js";
+
 
 const form = document.getElementById("options-form") as HTMLFormElement;
 const renderBtn = document.getElementById("render-btn") as HTMLButtonElement;
