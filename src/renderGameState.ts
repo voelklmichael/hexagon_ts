@@ -121,7 +121,7 @@ function drawLongMovement(
   ctx.moveTo(fromX, fromY);
   ctx.quadraticCurveTo(cpx, cpy, toX, toY);
   ctx.stroke();
-  ctx.setLineDash([]);  
+  ctx.setLineDash([]);
   ctx.restore();
 }
 

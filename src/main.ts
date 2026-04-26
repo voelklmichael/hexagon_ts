@@ -4,6 +4,7 @@ import {
   generateGrid, randomHexagonTile, rotateTile,
   followPath, mirrorConnector, EDGE_NEIGHBOR,
 } from "./hex.js";
+import { Rng } from "./random_number_generator.js";
 
 // --- Colors / constants ---
 
