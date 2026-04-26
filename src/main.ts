@@ -150,7 +150,7 @@ undoBtn.addEventListener("click", () => {
   syncUndoRedo();
   persistState();
   redrawBoard();
-  renderMidPanel();
+  renderHandPanel();
   renderStats();
 });
 
@@ -163,7 +163,7 @@ redoBtn.addEventListener("click", () => {
   syncUndoRedo();
   persistState();
   redrawBoard();
-  renderMidPanel();
+  renderHandPanel();
 });
 
 function readOptions(): StandardGameOptions {
@@ -257,10 +257,10 @@ function rotateTileInHand(pi: number, tileIdx: number, steps: number): void {
     players: state.board.players.map((p, i) => i === pi ? { ...p, hand: newHand } : p),
   };
   redrawBoard();
-  renderMidPanel();
+  renderHandPanel();
 }
 
-function renderMidPanel(): void {
+function renderHandPanel(): void {
   if (!state) return;
   const { board, currentPlayer } = state;
   const { playerIndex, selectedTileIndex } = currentPlayer;
@@ -304,6 +304,7 @@ function renderMidPanel(): void {
   player.hand.forEach((tile, i) => {
     const card = document.createElement("div");
     card.className = "tile-card" + (i === selectedTileIndex ? " selected" : "");
+    card.dataset.tileIndex = String(i);
 
     const tileCanvas = document.createElement("canvas");
     tileCanvas.width = 160;
@@ -326,9 +327,17 @@ function renderMidPanel(): void {
     card.appendChild(rotRow);
 
     card.addEventListener("click", () => {
-      state!.currentPlayer.selectedTileIndex = i;
+      if (!state) return;
+      state.currentPlayer.selectedTileIndex = i;
+      tileGrid.querySelectorAll<HTMLElement>(".tile-card").forEach((c, idx) => {
+        const sel = idx === i;
+        c.classList.toggle("selected", sel);
+        const cv = c.querySelector("canvas") as HTMLCanvasElement | null;
+        if (cv) drawMiniTile(cv, player.hand[idx]!, sel);
+      });
+      playBtn.disabled = false;
+      gameStatus.textContent = "";
       redrawBoard();
-      renderMidPanel();
     });
     tileGrid.appendChild(card);
   });
@@ -343,7 +352,14 @@ function renderMidPanel(): void {
   }
 }
 
-playBtn.addEventListener("click", () => {
+tileGrid.addEventListener("dblclick", e => {
+  const card = (e.target as HTMLElement).closest<HTMLElement>(".tile-card");
+  if (!card || !state) return;
+  state.currentPlayer.selectedTileIndex = Number(card.dataset.tileIndex);
+  playSelectedTile();
+});
+
+function playSelectedTile(): void {
   if (!state || state.currentPlayer.selectedTileIndex === null) return;
 
   undoStack.push(serializeState(state, turn));
@@ -356,7 +372,6 @@ playBtn.addEventListener("click", () => {
   turn++;
   const newBoard = playTile(state.board, playerIndex, tile, turn, state.options.collisionMode);
 
-  // Replenish hand: remove played tile, draw a new one
   const newHand = state.board.players[playerIndex]!.hand.filter((_, i) => i !== selectedTileIndex);
   const { paths } = randomHexagonTile(state.rng);
   newHand.push({ kind: "connector", connections: paths });
@@ -374,8 +389,10 @@ playBtn.addEventListener("click", () => {
 
   persistState();
   redrawBoard();
-  renderMidPanel();
-});
+  renderHandPanel();
+}
+
+playBtn.addEventListener("click", playSelectedTile);
 
 function renderStats(): void {
   const view = document.getElementById("stats-view")!;
@@ -472,7 +489,7 @@ function render(): void {
   emptyHint.style.display = "none";
   persistState();
   redrawBoard();
-  renderMidPanel();
+  renderHandPanel();
 }
 
 renderBtn.addEventListener("click", render);
@@ -492,7 +509,7 @@ if (saved) {
     switchLeftPanel("hand-view");
     syncUndoRedo();
     redrawBoard();
-    renderMidPanel();
+    renderHandPanel();
     renderStats();
   } catch {
     localStorage.removeItem(LS_KEY);
