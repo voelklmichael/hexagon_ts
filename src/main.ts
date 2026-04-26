@@ -5,6 +5,7 @@ import { renderGameState } from "./renderGameState.js";
 import { Rng } from "./random_number_generator.js";
 import { hexVertices, connectorPosition, randomHexagonTile } from "./hex.js";
 import { playTile } from "./playTile.js";
+import { renderMusicView, initMusicAutoplay } from "./background_music.js";
 
 const form = document.getElementById("options-form") as HTMLFormElement;
 const renderBtn = document.getElementById("render-btn") as HTMLButtonElement;
@@ -511,6 +512,7 @@ if (saved) {
     redrawBoard();
     renderHandPanel();
     renderStats();
+    renderMusicView();
   } catch {
     localStorage.removeItem(LS_KEY);
   }
@@ -519,3 +521,5 @@ if (saved) {
 // Draw after window.load so canvas dimensions are guaranteed to be non-zero.
 // Also covers the restore path above (state set synchronously before load fires).
 window.addEventListener("load", () => { if (state) redrawBoard(); }, { once: true });
+initMusicAutoplay();
+renderMusicView();

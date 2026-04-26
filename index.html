@@ -564,6 +564,74 @@
     .stats-table .stats-hi {
       color: #53d8fb;
     }
+
+    /* ── Music player ── */
+    .music-player-container {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .track-info {
+      background: #16213e;
+      border: 1px solid #0f3460;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .track-status {
+      font-size: 10px;
+      color: #53d8fb;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .music-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ctrl-btn {
+      background: #16213e;
+      color: #a0b8d0;
+      border: 1px solid #0f3460;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .ctrl-btn:hover {
+      background: #1f4080;
+      color: #fff;
+    }
+
+    .ctrl-btn.main {
+      font-size: 20px;
+      padding: 8px 20px;
+    }
+
+    .volume-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 10px;
+      color: #5a7a9a;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #music-volume {
+      flex: 1;
+      accent-color: #53d8fb;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -578,6 +646,7 @@
     <div class="panel-nav hidden" id="left-panel-nav">
       <div class="nav-item active" data-target="options-view">Options</div>
       <div class="nav-item" data-target="hand-view">Hand</div>
+      <div class="nav-item" data-target="music-view">Music</div>
     </div>
 
     <!-- Options view -->
@@ -667,6 +736,9 @@
         <div id="game-status"></div>
       </div>
     </div>
+
+    <!-- Music view -->
+    <div id="music-view" class="left-view hidden"></div>
   </div>
 
   <!-- Center: board -->
