@@ -52,6 +52,17 @@ setupBurgerMenu(
   "left-view",
 );
 
+function switchLeftPanel(targetId: string): void {
+  const nav = document.getElementById("left-panel-nav")!;
+  document.querySelectorAll<HTMLElement>(".left-view").forEach(v => v.classList.add("hidden"));
+  document.getElementById(targetId)!.classList.remove("hidden");
+  nav.querySelectorAll<HTMLElement>(".nav-item").forEach(item => {
+    const isTarget = item.dataset.target === targetId;
+    item.classList.toggle("active", isTarget);
+    if (isTarget) document.getElementById("left-panel-title")!.textContent = item.textContent!.trim();
+  });
+}
+
 const rightPanel = document.getElementById("right-panel") as HTMLDivElement;
 const rightCollapseBtn = document.getElementById("right-collapse-btn") as HTMLButtonElement;
 const rightPanelNav = document.getElementById("right-panel-nav") as HTMLElement;
@@ -216,8 +227,15 @@ function redrawBoard(): void {
   if (!state) return;
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
+  if (canvas.width === 0 || canvas.height === 0) {
+    requestAnimationFrame(() => redrawBoard());
+    return;
+  }
+  console.log("redrawing", canvas.width, canvas.height);
   renderGameState(state, ctx, canvas.width, canvas.height);
   jsonOutput.textContent = JSON.stringify(state, null, 2);
+
+
 }
 
 function rotateTileInHand(pi: number, tileIdx: number, steps: number): void {
@@ -417,9 +435,9 @@ function render(): void {
 }
 
 renderBtn.addEventListener("click", render);
-window.addEventListener("resize", () => {
-  if (state) redrawBoard();
-});
+
+const canvasObserver = new ResizeObserver(() => { if (state) redrawBoard(); });
+canvasObserver.observe(canvas);
 
 // Restore last session on load
 const saved = localStorage.getItem(LS_KEY);
@@ -430,6 +448,7 @@ if (saved) {
     if (!state.statistics) state.statistics = computeStatistics(state.board);
     turn = t;
     emptyHint.style.display = "none";
+    switchLeftPanel("hand-view");
     syncUndoRedo();
     redrawBoard();
     renderMidPanel();
@@ -437,3 +456,7 @@ if (saved) {
     localStorage.removeItem(LS_KEY);
   }
 }
+
+// Draw after window.load so canvas dimensions are guaranteed to be non-zero.
+// Also covers the restore path above (state set synchronously before load fires).
+window.addEventListener("load", () => { if (state) redrawBoard(); }, { once: true });
