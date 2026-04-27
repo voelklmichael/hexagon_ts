@@ -4,7 +4,7 @@ import type {
   Player, TileEntry, ConnectorId,
 } from "./types.js";
 import type { StandardGameOptions } from "./standardGameOptions.js";
-import { generateGrid, randomHexagonTile, mirrorConnector, EDGE_NEIGHBOR } from "./hex.js";
+import { generateGrid, randomHexagonTile, mirrorConnector, EDGE_NEIGHBOR, hexToPixel, HEX_SIZE } from "./hex.js";
 import { Rng } from "./random_number_generator.js";
 
 const DEFAULT_COLORS = ["#00e676", "#ff6b6b", "#ffd93d", "#6bceff", "#c77dff", "#ff9f1c"];
@@ -22,6 +22,7 @@ export function createStandardGameBoard(options: StandardGameOptions, rng: Rng):
 
   const connectors: BoardConnector[] = [];
   const processedEdges = new Set<string>();
+  const rimEdges: { q: number; r: number; edge: number }[] = [];
 
   for (const cell of cells) {
     for (let edge = 0; edge < 6; edge++) {
@@ -45,43 +46,56 @@ export function createStandardGameBoard(options: StandardGameOptions, rng: Rng):
         });
         connectors.push(link(cA), link(cB));
       } else {
-        const cA = (edge * 2) as ConnectorId;
-        const cB = (edge * 2 + 1) as ConnectorId;
-
-        const rim = (id: ConnectorId): OuterRimConnector => ({
-          kind: "outer_rim",
-          position: { coord: { q: cell.q, r: cell.r }, connectorId: id },
-        });
-        connectors.push(rim(cA));
-        if (options.outerConnectors === "All") connectors.push(rim(cB));
+        if (options.outerConnectors === "All") {
+          const cA = (edge * 2) as ConnectorId;
+          const cB = (edge * 2 + 1) as ConnectorId;
+          const rim = (id: ConnectorId): OuterRimConnector => ({
+            kind: "outer_rim",
+            position: { coord: { q: cell.q, r: cell.r }, connectorId: id },
+          });
+          connectors.push(rim(cA), rim(cB));
+        } else {
+          rimEdges.push({ q: cell.q, r: cell.r, edge });
+        }
       }
     }
   }
 
-  // In Reduced mode, connect each outer edge's left connector (edge*2) to the
-  // next clockwise rim edge's right connector (nextEdge*2+1) via LongMovement.
   if (options.outerConnectors === "Reduced") {
-    for (const cell of cells) {
-      for (let edge = 0; edge < 6; edge++) {
-        if (edge != 0 && edge != 5) { continue; }
-        const [dq, dr] = EDGE_NEIGHBOR[edge]!;
-        if (isInGrid(cell.q + dq, cell.r + dr)) continue;
+    const sorted = rimEdges.map(re => {
+      const [cx, cy] = hexToPixel(re.q, re.r, HEX_SIZE);
+      const edgeAngle = (re.edge * 60) * (Math.PI / 180);
+      const midX = cx + Math.cos(edgeAngle) * (HEX_SIZE * 0.8);
+      const midY = cy + Math.sin(edgeAngle) * (HEX_SIZE * 0.8);
+      return { ...re, angle: Math.atan2(midY, midX) };
+    }).sort((a, b) => a.angle - b.angle);
 
-        // Next outer edge clockwise: try same cell first, else cross to neighbour.
-        const ep = (edge + 5) % 6;
-        const [ndq, ndr] = EDGE_NEIGHBOR[ep]!;
-        const nq = cell.q + ndq, nr = cell.r + ndr;
-        const [nextQ, nextR, nextEdge] =
-          [nq, nr, (edge + 1) % 6]
-          ;
+    const len = sorted.length;
+    for (let i = 0; i < len; i++) {
+      const curr = sorted[i]!;
+      const next = sorted[(i + 1) % len]!;
 
-        const lm: LongMovement = {
+      const currRight = (curr.edge * 2 + 1) as ConnectorId;
+      const nextLeft = (next.edge * 2) as ConnectorId;
+
+      if (curr.q === next.q && curr.r === next.r) {
+        const diff = Math.abs(curr.edge - next.edge);
+        // Adjacency check: edges must be consecutive (diff 1) or the 0-5 wrap.
+        if (diff !== 1 && diff !== 5) throw new Error(`Panic: Perimeter edges on same hex must be consecutive. Found ${curr.edge} and ${next.edge}`);
+      }
+
+      if (curr.q !== next.q || curr.r !== next.r) {
+        // Hex-to-Hex junction: Bridge the rightmost of the current to the leftmost of the next
+        connectors.push({
           kind: "long_movement",
-          from: { coord: { q: cell.q, r: cell.r }, connectorId: (edge * 2) as ConnectorId },
-          to: { coord: { q: nextQ, r: nextR }, connectorId: (nextEdge * 2 + 1) as ConnectorId },
-          steps: 1,
-        };
-        connectors.push(lm);
+          from: { coord: { q: curr.q, r: curr.r }, connectorId: currRight },
+          to: { coord: { q: next.q, r: next.r }, connectorId: nextLeft },
+          steps: 1
+        });
+      } else {
+        // Internal hex corner: both adjacent connectors remain as standard outer rim exits
+        connectors.push({ kind: "outer_rim", position: { coord: { q: curr.q, r: curr.r }, connectorId: currRight } });
+        connectors.push({ kind: "outer_rim", position: { coord: { q: next.q, r: next.r }, connectorId: nextLeft } });
       }
     }
   }

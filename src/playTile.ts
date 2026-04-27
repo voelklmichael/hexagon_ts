@@ -48,11 +48,13 @@ function walkPath(
   while (true) {
     const entry = tileAt(board.tiles, coord);
     if (!entry || entry.tile.kind !== "connector") {
+      if (linkWeight > 0 && steps.length > 0) steps[steps.length - 1]!.weight += linkWeight;
       return { steps, finalPosition: { coord, connectorId } };
     }
 
     const exitConnector = followConnection(entry.tile, connectorId);
     if (exitConnector === undefined) {
+      if (linkWeight > 0 && steps.length > 0) steps[steps.length - 1]!.weight += linkWeight;
       return { steps, finalPosition: { coord, connectorId } };
     }
 

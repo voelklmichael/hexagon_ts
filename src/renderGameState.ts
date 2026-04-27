@@ -14,7 +14,6 @@ const COLORS = {
   path: "#53d8fb",
   deadPath: "#3a3a52",
   closedLoop: "#252530",
-  longMovement: "#ffd93d",
 };
 
 const CONNECTOR_RADIUS = 3.5;
@@ -154,6 +153,7 @@ function drawLongMovement(
   originX: number, originY: number,
   fromX: number, fromY: number,
   toX: number, toY: number,
+  color: string = COLORS.connector,
 ): void {
   // Control point pushed outward from the board centre so the arc clears the rim.
   const mx = (fromX + toX) / 2;
@@ -166,7 +166,7 @@ function drawLongMovement(
 
   ctx.save();
   ctx.setLineDash([5, 3]);
-  ctx.strokeStyle = COLORS.longMovement;
+  ctx.strokeStyle = color;
   ctx.lineWidth = 1.5;
   ctx.lineCap = "round";
   ctx.beginPath();
@@ -221,6 +221,11 @@ export function renderGameState(
     }
   }
 
+  const getPixelPos = (q: number, r: number, id: ConnectorId): [number, number] => {
+    const [cx, cy] = hexToPixel(q, r, HEX_SIZE);
+    return connectorPosition(originX + cx, originY + cy, HEX_SIZE, id);
+  };
+
   const placedMap = new Map<string, ConnectorTile>();
   for (const entry of board.tiles) {
     if (entry.tile.kind === "connector") {
@@ -270,6 +275,25 @@ export function renderGameState(
     }
   }
 
+  // Identify which board bridges have been used by which players.
+  // Detect from the source side: a step whose exit connector is the bridge entrance.
+  // (The weight>1 arrival-side check misses the common case where the destination
+  // tile is empty when the player first crosses.)
+  const bridgeUsage = new Map<(typeof board.connectors)[number], Set<number>>();
+  for (let pi = 0; pi < board.players.length; pi++) {
+    const p = board.players[pi]!;
+    for (const turn of p.history.turns) {
+      for (const step of turn.steps) {
+        const conn = boardConnByPos.get(`${step.coord.q},${step.coord.r},${step.exit}`);
+        if (conn && (conn.kind === "long_movement" || conn.kind === "teleporter")) {
+          let s = bridgeUsage.get(conn);
+          if (!s) { s = new Set(); bridgeUsage.set(conn, s); }
+          s.add(pi);
+        }
+      }
+    }
+  }
+
   const addStep = (map: Map<string, Set<number>>, key: string, pi: number) => {
     const s = map.get(key);
     if (s) s.add(pi); else map.set(key, new Set([pi]));
@@ -307,13 +331,16 @@ export function renderGameState(
 
   const visited = new Set<string>();
   const rimHandled = new Set<string>();
+  // Long_movement connectors whose endpoint chains reach an outer_rim (dead-end connected).
+  const bridgeRimEnds = new Set<(typeof board.connectors)[number]>();
 
   // Follow a chain of tile arcs starting from (q, r, connId), crossing tile_tile
   // boundaries until an outer_rim connector is reached or the chain ends.
-  const traceChain = (startQ: number, startR: number, startConnId: ConnectorId): { arcs: Arc[]; rimEnds: RimEnd[] } => {
+  const traceChain = (startQ: number, startR: number, startConnId: ConnectorId): { arcs: Arc[]; rimEnds: RimEnd[]; terminalBridge: (typeof board.connectors)[number] | null } => {
     const arcs: Arc[] = [];
     const rimEnds: RimEnd[] = [];
     let q = startQ, r = startR, connId = startConnId;
+    let terminalBridge: (typeof board.connectors)[number] | null = null;
 
     while (true) {
       if (visited.has(`${q},${r},${connId}`)) break;
@@ -334,11 +361,12 @@ export function renderGameState(
           ? next.b : next.a;
         q = other.coord.q; r = other.coord.r; connId = other.connectorId;
       } else {
-        break; // teleporter, long_movement, or no connector (empty neighbour)
+        if (next?.kind === "long_movement") terminalBridge = next;
+        break;
       }
     }
 
-    return { arcs, rimEnds };
+    return { arcs, rimEnds, terminalBridge };
   };
 
   for (const conn of [...board.connectors].sort((a, b) => (a.kind === "outer_rim" ? -1 : b.kind === "outer_rim" ? 1 : 0))) {
@@ -361,10 +389,16 @@ export function renderGameState(
     for (const { q, r, connId, isRim } of starts) {
       if (visited.has(`${q},${r},${connId}`)) continue;
 
-      const { arcs, rimEnds } = traceChain(q, r, connId);
+      const { arcs, rimEnds, terminalBridge } = traceChain(q, r, connId);
       if (arcs.length === 0) continue;
 
       const allRimEnds: RimEnd[] = isRim ? [{ q, r, connectorId: connId }, ...rimEnds] : rimEnds;
+
+      // A bridge is dead-end connected only when the chain touching it is grey.
+      if (allRimEnds.length > 0) {
+        if (conn.kind === "long_movement") bridgeRimEnds.add(conn);
+        if (terminalBridge !== null) bridgeRimEnds.add(terminalBridge);
+      }
 
       // Collect all owning players — history (full color) takes priority over preview-only (translucent)
       const historyOwners = new Set<number>();
@@ -406,6 +440,24 @@ export function renderGameState(
     }
   }
 
+  // Board-level connectors (Long Movement / Bridges)
+  // Drawn after traceChain so bridgeRimEnds is fully populated.
+  for (const conn of board.connectors) {
+    if (conn.kind === "long_movement" || conn.kind === "teleporter") {
+      const [fx, fy] = getPixelPos(conn.from.coord.q, conn.from.coord.r, conn.from.connectorId);
+      const [tx, ty] = getPixelPos(conn.to.coord.q, conn.to.coord.r, conn.to.connectorId);
+
+      const usage = bridgeUsage.get(conn);
+      const color = usage && usage.size > 0
+        ? mixColors([...usage].map(pi => board.players[pi]!.color))
+        : bridgeRimEnds.has(conn) ? "#888888" : COLORS.connector;
+
+      drawLongMovement(ctx, originX, originY, fx, fy, tx, ty, color);
+      drawConnectorDot(ctx, fx, fy, color);
+      drawConnectorDot(ctx, tx, ty, color);
+    }
+  }
+
   // Outer rim connectors on empty (unplaced) cells — always red X
   for (const conn of board.connectors) {
     if (conn.kind !== "outer_rim") continue;
@@ -416,11 +468,6 @@ export function renderGameState(
     const edge = Math.floor(connectorId / 2);
     drawXMarker(ctx, mx, my, (edge * 60 + 30) * (Math.PI / 180), "#e94560");
   }
-
-  const getPixelPos = (q: number, r: number, id: ConnectorId): [number, number] => {
-    const [cx, cy] = hexToPixel(q, r, HEX_SIZE);
-    return connectorPosition(originX + cx, originY + cy, HEX_SIZE, id);
-  };
 
   // Player positions
   for (const player of state.board.players) {
@@ -450,25 +497,46 @@ export function renderGameState(
           const center = [originX + hexX, originY + hexY] as [number, number];
 
           if (step.weight > 1) {
-            const linkWeight = step.weight - 1;
-            const linkProgressThreshold = linkWeight / step.weight;
-            if (progressInStep < linkProgressThreshold) {
-              const prevStep = lastTurn.steps[i - 1];
-              const prevPos = prevStep
-                ? getPixelPos(prevStep.coord.q, prevStep.coord.r, prevStep.exit)
-                : getPixelPos(player.history.startPosition.coord.q, player.history.startPosition.coord.r, player.history.startPosition.connectorId);
-              const t = progressInStep / linkProgressThreshold;
-              const mx = (prevPos[0] + entryPos[0]) / 2;
-              const my = (prevPos[1] + entryPos[1]) / 2;
-              const dx = mx - originX;
-              const dy = my - originY;
-              const len = Math.sqrt(dx * dx + dy * dy) || 1;
-              const cpx = mx + (dx / len) * 44;
-              const cpy = my + (dy / len) * 44;
-              markerPos = interpolateQuadratic(prevPos, [cpx, cpy], entryPos, t);
+            const extraWeight = step.weight - 1;
+            const exitBridge = boardConnByPos.get(`${step.coord.q},${step.coord.r},${step.exit}`);
+            const isBridgeAfter = exitBridge?.kind === "long_movement" || exitBridge?.kind === "teleporter";
+
+            if (isBridgeAfter && exitBridge) {
+              // Bridge follows this tile: tile arc first, then bridge arc.
+              const tileFraction = 1 / step.weight;
+              if (progressInStep < tileFraction) {
+                markerPos = interpolateQuadratic(entryPos, center, exitPos, progressInStep / tileFraction);
+              } else {
+                const dest = (exitBridge.from.coord.q === step.coord.q && exitBridge.from.coord.r === step.coord.r && exitBridge.from.connectorId === step.exit)
+                  ? exitBridge.to : exitBridge.from;
+                const destPos = getPixelPos(dest.coord.q, dest.coord.r, dest.connectorId);
+                const t = (progressInStep - tileFraction) / (extraWeight / step.weight);
+                const mx = (exitPos[0] + destPos[0]) / 2;
+                const my = (exitPos[1] + destPos[1]) / 2;
+                const dx = mx - originX;
+                const dy = my - originY;
+                const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                markerPos = interpolateQuadratic(exitPos, [mx + (dx / len) * 44, my + (dy / len) * 44], destPos, t);
+              }
             } else {
-              const t = (progressInStep - linkProgressThreshold) / (1 - linkProgressThreshold);
-              markerPos = interpolateQuadratic(entryPos, center, exitPos, t);
+              // Bridge preceded this tile: bridge arc first, then tile arc.
+              const bridgeFraction = extraWeight / step.weight;
+              if (progressInStep < bridgeFraction) {
+                const prevStep = lastTurn.steps[i - 1];
+                const prevPos = prevStep
+                  ? getPixelPos(prevStep.coord.q, prevStep.coord.r, prevStep.exit)
+                  : getPixelPos(player.history.startPosition.coord.q, player.history.startPosition.coord.r, player.history.startPosition.connectorId);
+                const t = progressInStep / bridgeFraction;
+                const mx = (prevPos[0] + entryPos[0]) / 2;
+                const my = (prevPos[1] + entryPos[1]) / 2;
+                const dx = mx - originX;
+                const dy = my - originY;
+                const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                markerPos = interpolateQuadratic(prevPos, [mx + (dx / len) * 44, my + (dy / len) * 44], entryPos, t);
+              } else {
+                const t = (progressInStep - bridgeFraction) / (1 / step.weight);
+                markerPos = interpolateQuadratic(entryPos, center, exitPos, t);
+              }
             }
           } else {
             markerPos = interpolateQuadratic(entryPos, center, exitPos, progressInStep);
