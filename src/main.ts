@@ -213,6 +213,7 @@ function readOptions(): StandardGameOptions {
   const data = new FormData(form);
   return {
     playerCount: Number(data.get("playerCount")),
+    npcCount: Number(data.get("npcCount") ?? 0),
     collisionMode: data.get("collisionMode") as "pass" | "die",
     highlightDeadPaths: data.get("highlightDeadPaths") === "on",
     winningCondition: data.get("winningCondition") as "LastManStanding" | "MaxDistance" | "MaxVelocity",
@@ -624,7 +625,7 @@ function render(): void {
     options,
     seed,
     rng,
-    currentPlayer: { playerIndex: 0, selectedTileIndex: null },
+    currentPlayer: { playerIndex: nextAlivePlayer(board.players, -1), selectedTileIndex: null },
     statistics: computeStatistics(board),
   };
 
@@ -660,7 +661,7 @@ function restart(): void {
     board,
     history: [],
     rng,
-    currentPlayer: { playerIndex: 0, selectedTileIndex: null },
+    currentPlayer: { playerIndex: nextAlivePlayer(board.players, -1), selectedTileIndex: null },
     statistics: computeStatistics(board),
   };
 

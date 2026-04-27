@@ -7,6 +7,8 @@ export type OuterConnectors = "All" | "Reduced";
 export type StandardGameOptions = {
   /** Minimum 1. */
   playerCount: number;
+  /** NPC players that are automatically skipped each turn. Minimum 0. */
+  npcCount: number;
   collisionMode: CollisionMode;
   highlightDeadPaths: boolean;
   winningCondition: WinningCondition;

@@ -105,9 +105,10 @@ export function createStandardGameBoard(options: StandardGameOptions, rng: Rng):
     .filter(c => c.kind === "outer_rim")
     .map(c => c.position);
 
-  if (outerRim.length < options.playerCount) {
+  const totalPlayers = options.playerCount + (options.npcCount ?? 0);
+  if (outerRim.length < totalPlayers) {
     throw new Error(
-      `Not enough starting positions: board has ${outerRim.length} outer-rim connectors but ${options.playerCount} players are required.`
+      `Not enough starting positions: board has ${outerRim.length} outer-rim connectors but ${totalPlayers} players are required.`
     );
   }
 
@@ -116,16 +117,17 @@ export function createStandardGameBoard(options: StandardGameOptions, rng: Rng):
     [outerRim[i], outerRim[j]] = [outerRim[j]!, outerRim[i]!];
   }
 
-  const players: Player[] = Array.from({ length: options.playerCount }, (_, i) => {
+  const players: Player[] = Array.from({ length: totalPlayers }, (_, i) => {
     const startPosition = outerRim[i]!;
-    const hand = Array.from({ length: options.handSize }, () => {
+    const isNpc = i >= options.playerCount;
+    const hand = isNpc ? [] : Array.from({ length: options.handSize }, () => {
       const { paths } = randomHexagonTile(rng);
       return { kind: "connector" as const, connections: paths };
     });
     return {
       color: DEFAULT_COLORS[i % DEFAULT_COLORS.length]!,
       isAlive: true,
-      canTakeActions: true,
+      canTakeActions: !isNpc,
       position: startPosition,
       hand,
       history: { startPosition, turns: [] },
