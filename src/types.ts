@@ -11,6 +11,7 @@
 
 import { Rng } from "./random_number_generator.js";
 import { StandardGameOptions } from "./standardGameOptions.js";
+import { PickupDeliverOptions } from "./pickupDeliverOptions.js";
 
 export type ConnectorId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
@@ -182,8 +183,15 @@ export type GameBoard = {
 /** Collision mode: what happens when two players occupy the same position. */
 export type CollisionMode = "pass" | "die";
 
+/** A target outer-rim connector that a specific player (or any player) must reach. */
+export type PickupDeliverTarget = {
+  position: BoardPosition;
+  /** Player index that must reach this target, or "any" for the first player to arrive. */
+  acceptsPlayer: number | "any";
+};
+
 /** Persistent settings that govern how the game is played. */
-export type GameOptions = StandardGameOptions;
+export type GameOptions = StandardGameOptions | PickupDeliverOptions;
 
 // ─── GameState ────────────────────────────────────────────────────────────────
 
@@ -219,4 +227,6 @@ export type GameState = {
   rng: Rng;
   currentPlayer: CurrentPlayer;
   statistics: Statistics;
+  /** Present only in pickup_deliver mode; fixed for the life of the game. */
+  pickupDeliverTargets?: PickupDeliverTarget[];
 };

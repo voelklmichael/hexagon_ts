@@ -1,6 +1,8 @@
 import type { StandardGameOptions } from "./standardGameOptions.js";
-import type { GameState, GameBoard, Statistics, ConnectorTile, ConnectorId, TileCoord } from "./types.js";
+import type { PickupDeliverOptions } from "./pickupDeliverOptions.js";
+import type { GameState, GameBoard, Statistics, ConnectorTile, ConnectorId, TileCoord, PickupDeliverTarget } from "./types.js";
 import { createStandardGameBoard } from "./createGameBoard.js";
+import { createPickupDeliverBoard } from "./createPickupDeliverBoard.js";
 import { renderGameState } from "./renderGameState.js";
 import { Rng } from "./random_number_generator.js";
 import { hexVertices, connectorPosition, randomHexagonTile } from "./hex.js";
@@ -209,9 +211,21 @@ redoBtn.addEventListener("click", () => {
   renderHandPanel();
 });
 
-function readOptions(): StandardGameOptions {
+function readOptions(): StandardGameOptions | PickupDeliverOptions {
   const data = new FormData(form);
+  const mode = data.get("gameMode") as string;
+  if (mode === "pickup_deliver") {
+    return {
+      mode: "pickup_deliver",
+      npcCount: Number(data.get("pd_npcCount") ?? 0),
+      anyTargetCount: Number(data.get("pd_anyTargetCount") ?? 0),
+      handSize: Number(data.get("handSize")),
+      boardSize: Number(data.get("boardSize")),
+      outerConnectors: data.get("outerConnectors") as "All" | "Reduced",
+    };
+  }
   return {
+    mode: "standard",
     playerCount: Number(data.get("playerCount")),
     npcCount: Number(data.get("npcCount") ?? 0),
     collisionMode: data.get("collisionMode") as "pass" | "die",
@@ -280,7 +294,33 @@ function redrawBoard(progress: number = 1.0, currentTurn?: number, playedCoord?:
   jsonOutput.textContent = JSON.stringify(state, null, 2);
 }
 
+function targetFulfilled(target: PickupDeliverTarget, players: GameBoard["players"]): boolean {
+  const candidates = target.acceptsPlayer === "any"
+    ? players
+    : players.filter(p => p.index === target.acceptsPlayer);
+  for (const p of candidates) {
+    if (p.isAlive) continue;
+    for (const turn of p.history.turns) {
+      const last = turn.steps[turn.steps.length - 1];
+      if (last &&
+        last.coord.q === target.position.coord.q &&
+        last.coord.r === target.position.coord.r &&
+        last.exit === target.position.connectorId) return true;
+    }
+  }
+  return false;
+}
+
 function checkGameOver(state: GameState): { over: boolean; winners: number[] } {
+  if (state.options.mode === "pickup_deliver") {
+    const targets = state.pickupDeliverTargets ?? [];
+    if (targets.length > 0 && targets.every(t => targetFulfilled(t, state.board.players))) {
+      return { over: true, winners: [0] };
+    }
+    if (!state.board.players[0]!.isAlive) return { over: true, winners: [] };
+    return { over: false, winners: [] };
+  }
+
   const { board, options, statistics } = state;
   const alivePlayers = board.players.filter(p => p.isAlive);
   const aliveCount = alivePlayers.length;
@@ -505,7 +545,7 @@ function playSelectedTile(): void {
 
 
   turn++;
-  const newBoard = playTile(state.board, playerIndex, tile, turn, state.options.collisionMode);
+  const newBoard = playTile(state.board, playerIndex, tile, turn, state.options.mode === "standard" ? state.options.collisionMode : "pass");
 
   const newHand = state.board.players[playerIndex]!.hand.filter((_, i) => i !== selectedTileIndex);
   const { paths } = randomHexagonTile(state.rng);
@@ -549,8 +589,8 @@ function renderStats(): void {
   const statusText = aliveCount <= 1
     ? (aliveCount === 1 ? "Game over" : "Draw")
     : `${aliveCount} alive`;
-  const winStat = options.winningCondition === "MaxDistance" ? "dist"
-    : options.winningCondition === "MaxVelocity" ? "vel"
+  const winStat = options.mode === "standard" && options.winningCondition === "MaxDistance" ? "dist"
+    : options.mode === "standard" && options.winningCondition === "MaxVelocity" ? "vel"
       : null;
   const hi = (col: string) => winStat === col ? " class=\"stats-hi\"" : "";
 
@@ -610,9 +650,16 @@ function render(): void {
   seedInput.value = String(seed);
   const rng = new Rng(seed);
 
-  let board;
+  let board: GameBoard;
+  let pickupDeliverTargets: PickupDeliverTarget[] | undefined;
   try {
-    board = createStandardGameBoard(options, rng);
+    if (options.mode === "pickup_deliver") {
+      const result = createPickupDeliverBoard(options, rng);
+      board = result.board;
+      pickupDeliverTargets = result.targets;
+    } else {
+      board = createStandardGameBoard(options, rng);
+    }
   } catch (e) {
     errorEl.textContent = e instanceof Error ? e.message : String(e);
     return;
@@ -627,6 +674,7 @@ function render(): void {
     rng,
     currentPlayer: { playerIndex: nextAlivePlayer(board.players, -1), selectedTileIndex: null },
     statistics: computeStatistics(board),
+    pickupDeliverTargets,
   };
 
   undoStack.length = 0;
@@ -647,9 +695,16 @@ function restart(): void {
   removeGameOverOverlay();
 
   const rng = new Rng(state.seed);
-  let board;
+  let board: GameBoard;
+  let pickupDeliverTargets: PickupDeliverTarget[] | undefined;
   try {
-    board = createStandardGameBoard(state.options, rng);
+    if (state.options.mode === "pickup_deliver") {
+      const result = createPickupDeliverBoard(state.options, rng);
+      board = result.board;
+      pickupDeliverTargets = result.targets;
+    } else {
+      board = createStandardGameBoard(state.options, rng);
+    }
   } catch (e) {
     errorEl.textContent = e instanceof Error ? e.message : String(e);
     return;
@@ -663,6 +718,7 @@ function restart(): void {
     rng,
     currentPlayer: { playerIndex: nextAlivePlayer(board.players, -1), selectedTileIndex: null },
     statistics: computeStatistics(board),
+    pickupDeliverTargets,
   };
 
   undoStack.length = 0;

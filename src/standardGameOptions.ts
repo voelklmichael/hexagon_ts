@@ -5,6 +5,7 @@ export type OuterConnectors = "All" | "Reduced";
 
 /** Full options for a standard game setup. Numeric constraints are enforced at runtime. */
 export type StandardGameOptions = {
+  mode: "standard";
   /** Minimum 1. */
   playerCount: number;
   /** NPC players that are automatically skipped each turn. Minimum 0. */

@@ -1,4 +1,4 @@
-import type { GameState, ConnectorTile, ConnectorId, TileCoord } from "./types.js";
+import type { GameState, ConnectorTile, ConnectorId, TileCoord, PickupDeliverTarget } from "./types.js";
 import {
   HEX_SIZE, hexVertices, hexToPixel,
   connectorPosition,
@@ -142,6 +142,26 @@ function drawMarker(ctx: CanvasRenderingContext2D, px: number, py: number, color
   ctx.fill();
 }
 
+function drawTargetMarker(
+  ctx: CanvasRenderingContext2D,
+  mx: number, my: number,
+  color: string,
+  fulfilled: boolean,
+): void {
+  const r = CONNECTOR_RADIUS + 5;
+  ctx.beginPath();
+  ctx.arc(mx, my, r, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  if (fulfilled) {
+    ctx.beginPath();
+    ctx.arc(mx, my, r * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+}
+
 function interpolateQuadratic(a: [number, number], cp: [number, number], b: [number, number], t: number): [number, number] {
   const x = (1 - t) * (1 - t) * a[0] + 2 * (1 - t) * t * cp[0] + t * t * b[0];
   const y = (1 - t) * (1 - t) * a[1] + 2 * (1 - t) * t * cp[1] + t * t * b[1];
@@ -217,7 +237,7 @@ export function renderGameState(
       selected_tile
         = state.board.players[state.currentPlayer.playerIndex]?.hand[state.currentPlayer.selectedTileIndex];
     } if (selected_tile != null) {
-      board = playTile(state.board, state.currentPlayer.playerIndex, selected_tile, 0, state.options.collisionMode);
+      board = playTile(state.board, state.currentPlayer.playerIndex, selected_tile, 0, state.options.mode === "standard" ? state.options.collisionMode : "pass");
     }
   }
 
@@ -250,7 +270,7 @@ export function renderGameState(
 
 
     let fill: string;
-    if (isCurrentPlayerTile && state.options.previewMoves) {
+    if (isCurrentPlayerTile && state.options.mode === "standard" && state.options.previewMoves) {
       fill = "#8b4513"; // brown
     } else if (entry.tile.kind === "connector") {
       fill = COLORS.placedFill;
@@ -304,7 +324,7 @@ export function renderGameState(
   const historyStepMap = new Map<string, Set<number>>();
   for (let pi = 0; pi < state.board.players.length; pi++) {
     const player = state.board.players[pi]!;
-    const turns = (!player.isAlive && state.options.collisionMode === "die")
+    const turns = (!player.isAlive && state.options.mode === "standard" && state.options.collisionMode === "die")
       ? player.history.turns.slice(0, -1)
       : player.history.turns;
     for (const turn of turns) {
@@ -565,10 +585,26 @@ export function renderGameState(
     drawStartMarker(ctx, smx, smy, spx, spy, player.color);
 
     let next_position = board.players[player.index]!.position;
-    if (animationProgress === 1.0 && current_position != next_position && state.options.previewMoves) {
+    if (animationProgress === 1.0 && current_position != next_position && state.options.mode === "standard" && state.options.previewMoves) {
       const { coord: next_coord, connectorId: next_connectorId } = next_position;
       const [mx, my] = getPixelPos(next_coord.q, next_coord.r, next_connectorId);
       drawMarker(ctx, mx, my, player.color);
+    }
+  }
+
+  // Pick-up-and-deliver targets
+  if (state.pickupDeliverTargets) {
+    for (const target of state.pickupDeliverTargets) {
+      const [mx, my] = getPixelPos(target.position.coord.q, target.position.coord.r, target.position.connectorId);
+      const color = target.acceptsPlayer === "any"
+        ? "#ffffff"
+        : (board.players[target.acceptsPlayer]?.color ?? "#ffffff");
+      const candidates = target.acceptsPlayer === "any" ? board.players : board.players.filter(p => p.index === target.acceptsPlayer);
+      const fulfilled = candidates.some(p => !p.isAlive && p.history.turns.some(t => {
+        const last = t.steps[t.steps.length - 1];
+        return last && last.coord.q === target.position.coord.q && last.coord.r === target.position.coord.r && last.exit === target.position.connectorId;
+      }));
+      drawTargetMarker(ctx, mx, my, color, fulfilled);
     }
   }
 

@@ -697,13 +697,33 @@
       <form id="options-form">
 
         <div class="field">
+          <label for="gameMode">Game Mode</label>
+          <select id="gameMode" name="gameMode">
+            <option value="standard">Standard</option>
+            <option value="pickup_deliver">Pick-up &amp; Deliver</option>
+          </select>
+        </div>
+
+        <!-- Standard-only fields -->
+        <div class="field mode-standard">
           <label for="playerCount">Players</label>
           <input type="number" id="playerCount" name="playerCount" value="2" min="1" max="6" />
         </div>
 
-        <div class="field">
+        <div class="field mode-standard">
           <label for="npcCount">NPCs</label>
           <input type="number" id="npcCount" name="npcCount" value="0" min="0" max="6" />
+        </div>
+
+        <!-- Pick-up-and-deliver–only fields -->
+        <div class="field mode-pickup-deliver" style="display:none">
+          <label for="pd_npcCount">NPCs (packages)</label>
+          <input type="number" id="pd_npcCount" name="pd_npcCount" value="2" min="0" max="6" />
+        </div>
+
+        <div class="field mode-pickup-deliver" style="display:none">
+          <label for="pd_anyTargetCount">Any-targets</label>
+          <input type="number" id="pd_anyTargetCount" name="pd_anyTargetCount" value="0" min="0" max="6" />
         </div>
 
         <div class="field">
@@ -716,7 +736,7 @@
           <input type="number" id="handSize" name="handSize" value="3" min="1" max="5" />
         </div>
 
-        <div class="field">
+        <div class="field mode-standard">
           <label for="collisionMode">Collision</label>
           <select id="collisionMode" name="collisionMode">
             <option value="pass">Pass through</option>
@@ -724,7 +744,7 @@
           </select>
         </div>
 
-        <div class="field">
+        <div class="field mode-standard">
           <label for="winningCondition">Winning Condition</label>
           <select id="winningCondition" name="winningCondition">
             <option value="LastManStanding">Last Man Standing</option>
@@ -844,6 +864,17 @@
     document.getElementById("randomise-btn").addEventListener("click", () => {
       document.getElementById("seed-input").value = "";
     });
+
+    (function () {
+      const modeSelect = document.getElementById("gameMode");
+      function applyMode() {
+        const isPD = modeSelect.value === "pickup_deliver";
+        document.querySelectorAll(".mode-standard").forEach(el => el.style.display = isPD ? "none" : "");
+        document.querySelectorAll(".mode-pickup-deliver").forEach(el => el.style.display = isPD ? "" : "none");
+      }
+      modeSelect.addEventListener("change", applyMode);
+      applyMode();
+    })();
   </script>
 </body>
 
