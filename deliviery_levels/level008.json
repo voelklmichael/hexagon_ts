@@ -1,0 +1,1003 @@
+{
+    "board": {
+        "tiles": [
+            {
+                "coord": {
+                    "q": -1,
+                    "r": 0
+                },
+                "tile": {
+                    "kind": "empty"
+                }
+            },
+            {
+                "coord": {
+                    "q": -1,
+                    "r": 1
+                },
+                "tile": {
+                    "kind": "empty"
+                }
+            },
+            {
+                "coord": {
+                    "q": 0,
+                    "r": -1
+                },
+                "tile": {
+                    "kind": "empty"
+                }
+            },
+            {
+                "coord": {
+                    "q": 0,
+                    "r": 0
+                },
+                "tile": {
+                    "kind": "empty"
+                }
+            },
+            {
+                "coord": {
+                    "q": 0,
+                    "r": 1
+                },
+                "tile": {
+                    "kind": "empty"
+                }
+            },
+            {
+                "coord": {
+                    "q": 1,
+                    "r": -1
+                },
+                "tile": {
+                    "kind": "empty"
+                }
+            },
+            {
+                "coord": {
+                    "q": 1,
+                    "r": 0
+                },
+                "tile": {
+                    "kind": "empty"
+                }
+            }
+        ],
+        "players": [
+            {
+                "color": "#00e676",
+                "isAlive": true,
+                "canTakeActions": true,
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 9
+                },
+                "hand": [
+                    {
+                        "kind": "connector",
+                        "connections": [
+                            [
+                                11,
+                                10
+                            ],
+                            [
+                                7,
+                                4
+                            ],
+                            [
+                                8,
+                                9
+                            ],
+                            [
+                                5,
+                                6
+                            ],
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                3,
+                                2
+                            ]
+                        ]
+                    },
+                    {
+                        "kind": "connector",
+                        "connections": [
+                            [
+                                0,
+                                5
+                            ],
+                            [
+                                8,
+                                1
+                            ],
+                            [
+                                6,
+                                7
+                            ],
+                            [
+                                4,
+                                3
+                            ],
+                            [
+                                11,
+                                10
+                            ],
+                            [
+                                9,
+                                2
+                            ]
+                        ]
+                    },
+                    {
+                        "kind": "connector",
+                        "connections": [
+                            [
+                                3,
+                                11
+                            ],
+                            [
+                                2,
+                                1
+                            ],
+                            [
+                                4,
+                                6
+                            ],
+                            [
+                                0,
+                                5
+                            ],
+                            [
+                                7,
+                                8
+                            ],
+                            [
+                                9,
+                                10
+                            ]
+                        ]
+                    }
+                ],
+                "history": {
+                    "startPosition": {
+                        "coord": {
+                            "q": -1,
+                            "r": 0
+                        },
+                        "connectorId": 9
+                    },
+                    "turns": []
+                },
+                "index": 0
+            },
+            {
+                "color": "#ff6b6b",
+                "isAlive": true,
+                "canTakeActions": false,
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 9
+                },
+                "hand": [],
+                "history": {
+                    "startPosition": {
+                        "coord": {
+                            "q": 0,
+                            "r": -1
+                        },
+                        "connectorId": 9
+                    },
+                    "turns": []
+                },
+                "index": 1
+            }
+        ],
+        "connectors": [
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 0
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 7
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 1
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 6
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 2
+                },
+                "b": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 9
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 3
+                },
+                "b": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 8
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 4
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 5
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 6
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 7
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 8
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 9
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 10
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 5
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "connectorId": 11
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 4
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 0
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 7
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 1
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 6
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 2
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 3
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 4
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 5
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 6
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 7
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 10
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 5
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "connectorId": 11
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 4
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 0
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 7
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 1
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 6
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 2
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 9
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 3
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 8
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 6
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 7
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 8
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 9
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 10
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "connectorId": 11
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 0
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 7
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 1
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 6
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 2
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 9
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 3
+                },
+                "b": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 8
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 10
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 5
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "connectorId": 11
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 4
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 0
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 1
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 2
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 3
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 4
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 5
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 10
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 5
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "connectorId": 11
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 4
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 0
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 1
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 2
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 9
+                }
+            },
+            {
+                "kind": "tile_tile",
+                "a": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 3
+                },
+                "b": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 8
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 8
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 9
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 10
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "connectorId": 11
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 0
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 1
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 2
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 3
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 10
+                }
+            },
+            {
+                "kind": "outer_rim",
+                "position": {
+                    "coord": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "connectorId": 11
+                }
+            }
+        ]
+    },
+    "options": {
+        "mode": "pickup_deliver",
+        "npcCount": 1,
+        "activePlayerHasTarget": false,
+        "anyTargetCount": 0,
+        "handSize": 3,
+        "boardSize": 1,
+        "outerConnectors": "All"
+    },
+    "seed": 3466947691,
+    "currentPlayer": {
+        "playerIndex": 0,
+        "selectedTileIndex": null
+    },
+    "pickupDeliverTargets": [
+        {
+            "position": {
+                "coord": {
+                    "q": -1,
+                    "r": 0
+                },
+                "connectorId": 5
+            },
+            "acceptsPlayer": 1
+        }
+    ]
+}
