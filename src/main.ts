@@ -798,6 +798,7 @@ async function loadLevel(levelNum: number): Promise<void> {
     switchLeftPanel("hand-view");
     switchRightPanel("stats-view");
     renderDeliveryLevelsView();
+    console.log("Level loaded successfully:", levelNum)
   } catch (e) {
     console.error("Error loading level:", e);
     alert(`Could not load level ${levelNum}. Ensure 'levels/level${levelNum}.json' is present in your server's levels directory.`);
