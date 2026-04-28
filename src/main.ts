@@ -795,10 +795,23 @@ async function loadLevel(levelNum: number): Promise<void> {
 
     state = stateData;
     restart();
+
+    stopAnimation();
+    removeGameOverOverlay();
+
+    undoStack.length = 0;
+    redoStack.length = 0;
+    syncUndoRedo();
+    emptyHint.style.display = "none";
+    persistState();
+    redrawBoard();
+    renderHandPanel();
+    renderStats();
+    renderDeliveryLevelsView();
     switchLeftPanel("hand-view");
     switchRightPanel("stats-view");
-    renderDeliveryLevelsView();
-    console.log("Level loaded successfully:", levelNum)
+
+    console.log("Level loaded successfully: ", levelNum)
   } catch (e) {
     console.error("Error loading level:", e);
     alert(`Could not load level ${levelNum}. Ensure 'levels/level${levelNum}.json' is present in your server's levels directory.`);
