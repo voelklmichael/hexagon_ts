@@ -148,6 +148,7 @@ const redoStack: string[] = [];
 let animationFrameId: number | null = null;
 let animationStartTime: number | null = null;
 let stopConfetti: (() => void) | null = null;
+let stopReplay: (() => void) | null = null;
 const ANIMATION_DURATION = 1500;
 
 function startAnimation() {
@@ -354,6 +355,48 @@ function checkGameOver(state: GameState): { over: boolean; winners: number[]; lo
   return { over: true, winners, lost: false };
 }
 
+function startReplay(cvs: HTMLCanvasElement, boards: GameBoard[], baseState: GameState): void {
+  const W = cvs.width;
+  const H = cvs.height;
+  const c = cvs.getContext("2d")!;
+
+  const makeState = (board: GameBoard): GameState =>
+    ({ ...baseState, board, currentPlayer: { playerIndex: -1, selectedTileIndex: null } });
+
+  let phase: "initial" | "animating" | "final" = "initial";
+  let phaseStart = -1;
+  let frameIdx = 1;
+  let frameStart = -1;
+
+  let rafId: number;
+  function tick(now: number) {
+    rafId = requestAnimationFrame(tick);
+    if (phase === "initial") {
+      if (phaseStart < 0) phaseStart = now;
+      renderGameState(makeState(boards[0]!), c, W, H, 1.0);
+      if (now - phaseStart >= 800) {
+        phase = boards.length > 1 ? "animating" : "final";
+        phaseStart = -1;
+        frameIdx = 1;
+        frameStart = now;
+      }
+    } else if (phase === "animating") {
+      const progress = Math.min((now - frameStart) / ANIMATION_DURATION, 1.0);
+      renderGameState(makeState(boards[frameIdx]!), c, W, H, progress, frameIdx);
+      if (progress >= 1.0) {
+        if (frameIdx >= boards.length - 1) { phase = "final"; phaseStart = -1; }
+        else { frameIdx++; frameStart = now; }
+      }
+    } else {
+      if (phaseStart < 0) phaseStart = now;
+      renderGameState(makeState(boards[boards.length - 1]!), c, W, H, 1.0);
+      if (now - phaseStart >= 5000) { phase = "initial"; phaseStart = -1; }
+    }
+  }
+  rafId = requestAnimationFrame(tick);
+  stopReplay = () => { cancelAnimationFrame(rafId); stopReplay = null; };
+}
+
 function startConfetti(container: HTMLElement): void {
   const cvs = document.createElement("canvas");
   Object.assign(cvs.style, {
@@ -453,11 +496,25 @@ function showGameOverOverlay(winners: number[], lost: boolean, state: GameState)
   };
   overlay.appendChild(btn);
   document.body.appendChild(overlay);
-  if (winners.length > 0) startConfetti(overlay);
+  if (winners.length > 0) {
+    startConfetti(overlay);
+    const replayW = Math.min(560, window.innerWidth * 0.82) | 0;
+    const replayH = (replayW * 0.62) | 0;
+    const replayCvs = document.createElement("canvas");
+    replayCvs.width = replayW;
+    replayCvs.height = replayH;
+    Object.assign(replayCvs.style, {
+      display: "block", marginTop: "20px", marginBottom: "20px",
+      borderRadius: "10px", border: "1px solid rgba(255,255,255,0.15)",
+    });
+    overlay.insertBefore(replayCvs, btn);
+    startReplay(replayCvs, [...state.history, state.board], state);
+  }
 }
 
 function removeGameOverOverlay() {
   stopConfetti?.();
+  stopReplay?.();
   document.getElementById("game-over-overlay")?.remove();
 }
 
@@ -588,6 +645,7 @@ function playSelectedTile(): void {
   if (!state || state.currentPlayer.selectedTileIndex === null) return;
 
   stopAnimation();
+  state.history.push(state.board);
   undoStack.push(serializeState(state, turn));
   redoStack.length = 0;
   syncUndoRedo();

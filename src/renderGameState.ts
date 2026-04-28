@@ -353,6 +353,9 @@ export function renderGameState(
   const rimHandled = new Set<string>();
   // Long_movement connectors whose endpoint chains reach an outer_rim (dead-end connected).
   const bridgeRimEnds = new Set<(typeof board.connectors)[number]>();
+  // Long_movement connectors whose endpoint chains reach an outer_rim.
+  // Maps the connector to the color it should be (either player color for targets or grey for dead ends).
+  const bridgeRimColors = new Map<(typeof board.connectors)[number], string>();
 
   // Follow a chain of tile arcs starting from (q, r, connId), crossing tile_tile
   // boundaries until an outer_rim connector is reached or the chain ends.
@@ -415,9 +418,30 @@ export function renderGameState(
       const allRimEnds: RimEnd[] = isRim ? [{ q, r, connectorId: connId }, ...rimEnds] : rimEnds;
 
       // A bridge is dead-end connected only when the chain touching it is grey.
+      // Identify color based on targets if it reaches the rim
+      let targetColor: string | null = null;
+      if (state.pickupDeliverTargets && allRimEnds.length > 0) {
+        for (const rim of allRimEnds) {
+          const target = state.pickupDeliverTargets.find(t =>
+            t.position.coord.q === rim.q &&
+            t.position.coord.r === rim.r &&
+            t.position.connectorId === rim.connectorId
+          );
+          if (target && typeof target.acceptsPlayer === "number") {
+            targetColor = board.players[target.acceptsPlayer]?.color ?? null;
+            if (targetColor) break;
+          }
+        }
+      }
+
+      const rimColor = targetColor ?? "#888888";
+
+      // A bridge is dead-end connected only when the chain touching it is grey (or target color).
       if (allRimEnds.length > 0) {
         if (conn.kind === "long_movement") bridgeRimEnds.add(conn);
         if (terminalBridge !== null) bridgeRimEnds.add(terminalBridge);
+        if (conn.kind === "long_movement") bridgeRimColors.set(conn, rimColor);
+        if (terminalBridge !== null) bridgeRimColors.set(terminalBridge, rimColor);
       }
 
       // Collect all owning players — history (full color) takes priority over preview-only (translucent)
@@ -439,7 +463,7 @@ export function renderGameState(
         ? mixColors([...historyOwners].map(pi => board.players[pi]!.color))
         : previewOnlyOwners.size > 0
           ? mixColors([...previewOnlyOwners].map(pi => board.players[pi]!.color)) + "aa"
-          : allRimEnds.length === 0 ? "#ffd700" : "#888888";
+          : allRimEnds.length === 0 ? "#ffd700" : rimColor;
 
       for (const arc of arcs) {
         const [cx, cy] = hexToPixel(arc.q, arc.r, HEX_SIZE);
@@ -462,6 +486,7 @@ export function renderGameState(
 
   // Board-level connectors (Long Movement / Bridges)
   // Drawn after traceChain so bridgeRimEnds is fully populated.
+  // Drawn after traceChain so bridgeRimColors is fully populated.
   for (const conn of board.connectors) {
     if (conn.kind === "long_movement" || conn.kind === "teleporter") {
       const [fx, fy] = getPixelPos(conn.from.coord.q, conn.from.coord.r, conn.from.connectorId);
@@ -470,7 +495,7 @@ export function renderGameState(
       const usage = bridgeUsage.get(conn);
       const color = usage && usage.size > 0
         ? mixColors([...usage].map(pi => board.players[pi]!.color))
-        : bridgeRimEnds.has(conn) ? "#888888" : COLORS.connector;
+        : bridgeRimColors.get(conn) ?? COLORS.connector;
 
       drawLongMovement(ctx, originX, originY, fx, fy, tx, ty, color);
       drawConnectorDot(ctx, fx, fy, color);
