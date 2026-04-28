@@ -496,8 +496,8 @@ function showGameOverOverlay(winners: number[], lost: boolean, state: GameState)
   };
   overlay.appendChild(btn);
   document.body.appendChild(overlay);
-  if (winners.length > 0) {
-    startConfetti(overlay);
+  if (winners.length > 0) startConfetti(overlay);
+  {
     const replayW = Math.min(560, window.innerWidth * 0.82) | 0;
     const replayH = (replayW * 0.62) | 0;
     const replayCvs = document.createElement("canvas");
