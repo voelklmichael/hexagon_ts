@@ -147,6 +147,7 @@ const undoStack: string[] = [];
 const redoStack: string[] = [];
 let animationFrameId: number | null = null;
 let animationStartTime: number | null = null;
+let stopConfetti: (() => void) | null = null;
 const ANIMATION_DURATION = 1500;
 
 function startAnimation() {
@@ -218,6 +219,7 @@ function readOptions(): StandardGameOptions | PickupDeliverOptions {
     return {
       mode: "pickup_deliver",
       npcCount: Number(data.get("pd_npcCount") ?? 0),
+      activePlayerHasTarget: data.get("pd_activePlayerHasTarget") === "on",
       anyTargetCount: Number(data.get("pd_anyTargetCount") ?? 0),
       handSize: Number(data.get("handSize")),
       boardSize: Number(data.get("boardSize")),
@@ -227,7 +229,6 @@ function readOptions(): StandardGameOptions | PickupDeliverOptions {
   return {
     mode: "standard",
     playerCount: Number(data.get("playerCount")),
-    npcCount: Number(data.get("npcCount") ?? 0),
     collisionMode: data.get("collisionMode") as "pass" | "die",
     highlightDeadPaths: data.get("highlightDeadPaths") === "on",
     winningCondition: data.get("winningCondition") as "LastManStanding" | "MaxDistance" | "MaxVelocity",
@@ -311,14 +312,19 @@ function targetFulfilled(target: PickupDeliverTarget, players: GameBoard["player
   return false;
 }
 
-function checkGameOver(state: GameState): { over: boolean; winners: number[] } {
+function checkGameOver(state: GameState): { over: boolean; winners: number[]; lost: boolean } {
   if (state.options.mode === "pickup_deliver") {
     const targets = state.pickupDeliverTargets ?? [];
     if (targets.length > 0 && targets.every(t => targetFulfilled(t, state.board.players))) {
-      return { over: true, winners: [0] };
+      return { over: true, winners: [0], lost: false };
     }
-    if (!state.board.players[0]!.isAlive) return { over: true, winners: [] };
-    return { over: false, winners: [] };
+    const failedTarget = targets.some(t => {
+      if (t.acceptsPlayer === "any") return false;
+      const p = state.board.players.find(p => p.index === t.acceptsPlayer);
+      return p && !p.isAlive && !targetFulfilled(t, state.board.players);
+    });
+    if (failedTarget || !state.board.players[0]!.isAlive) return { over: true, winners: [], lost: true };
+    return { over: false, winners: [], lost: false };
   }
 
   const { board, options, statistics } = state;
@@ -332,7 +338,7 @@ function checkGameOver(state: GameState): { over: boolean; winners: number[] } {
     if (aliveCount === 0) over = true;
   }
 
-  if (!over) return { over: false, winners: [] };
+  if (!over) return { over: false, winners: [], lost: false };
 
   let winners: number[] = [];
   if (options.winningCondition === "LastManStanding") {
@@ -345,10 +351,56 @@ function checkGameOver(state: GameState): { over: boolean; winners: number[] } {
       winners = board.players.filter(p => stats[p.index] === max).map(p => p.index);
     }
   }
-  return { over: true, winners };
+  return { over: true, winners, lost: false };
 }
 
-function showGameOverOverlay(winners: number[], state: GameState): void {
+function startConfetti(container: HTMLElement): void {
+  const cvs = document.createElement("canvas");
+  Object.assign(cvs.style, {
+    position: "absolute", top: "0", left: "0", width: "100%", height: "100%",
+    pointerEvents: "none",
+  });
+  container.insertBefore(cvs, container.firstChild);
+  cvs.width = container.offsetWidth || window.innerWidth;
+  cvs.height = container.offsetHeight || window.innerHeight;
+
+  const c = cvs.getContext("2d")!;
+  const COLORS = ["#ff6b6b", "#ffd93d", "#6bceff", "#c77dff", "#ff9f1c", "#00e676", "#53d8fb"];
+
+  const pieces = Array.from({ length: 160 }, () => ({
+    x: Math.random() * cvs.width,
+    y: Math.random() * cvs.height - cvs.height,
+    vx: (Math.random() - 0.5) * 4,
+    vy: Math.random() * 3 + 2,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)]!,
+    w: Math.random() * 10 + 6,
+    h: Math.random() * 6 + 3,
+    angle: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.15,
+  }));
+
+  let rafId: number;
+  function draw() {
+    c.clearRect(0, 0, cvs.width, cvs.height);
+    for (const p of pieces) {
+      c.save();
+      c.translate(p.x, p.y);
+      c.rotate(p.angle);
+      c.fillStyle = p.color;
+      c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      c.restore();
+      p.x += p.vx;
+      p.y += p.vy;
+      p.angle += p.spin;
+      if (p.y > cvs.height) { p.y = -p.h; p.x = Math.random() * cvs.width; }
+    }
+    rafId = requestAnimationFrame(draw);
+  }
+  draw();
+  stopConfetti = () => { cancelAnimationFrame(rafId); stopConfetti = null; };
+}
+
+function showGameOverOverlay(winners: number[], lost: boolean, state: GameState): void {
   removeGameOverOverlay();
 
   // Ensure animation styles exist
@@ -370,25 +422,23 @@ function showGameOverOverlay(winners: number[], state: GameState): void {
   });
 
   const title = document.createElement("h1");
-  title.textContent = "GAME OVER";
   title.style.fontSize = "5rem";
   title.style.margin = "0";
-  title.style.color = "#e94560";
-  overlay.appendChild(title);
-
-  const result = document.createElement("div");
-  result.style.fontSize = "2.5rem";
-  result.style.marginTop = "20px";
-  if (winners.length === 0) {
-    result.textContent = "DRAW";
+  if (winners.length > 0) {
+    const p = state.board.players.find(player => player.index === winners[0]);
+    const color = p?.color || "white";
+    const verb = winners.length === 1 ? "wins" : "win";
+    const names = winners.map(idx => `Player ${idx + 1}`).join(" & ");
+    title.textContent = `${names} ${verb}`;
+    title.style.color = color;
+  } else if (lost) {
+    title.textContent = "GAME OVER";
+    title.style.color = "#e94560";
   } else {
-    const names = winners.map(idx => {
-      const p = state.board.players.find(player => player.index === idx);
-      return `<span style="color:${p?.color || 'white'}; font-weight:bold;">Player ${idx + 1}</span>`;
-    }).join(" & ");
-    result.innerHTML = winners.length === 1 ? `${names} Wins!` : `${names} Win!`;
+    title.textContent = "DRAW";
+    title.style.color = "#e94560";
   }
-  overlay.appendChild(result);
+  overlay.appendChild(title);
 
   const btn = document.createElement("button");
   btn.textContent = "NEW GAME";
@@ -403,9 +453,11 @@ function showGameOverOverlay(winners: number[], state: GameState): void {
   };
   overlay.appendChild(btn);
   document.body.appendChild(overlay);
+  if (winners.length > 0) startConfetti(overlay);
 }
 
 function removeGameOverOverlay() {
+  stopConfetti?.();
   document.getElementById("game-over-overlay")?.remove();
 }
 
@@ -570,7 +622,7 @@ function playSelectedTile(): void {
   if (result.over) {
     stopAnimation();
     redrawBoard();
-    showGameOverOverlay(result.winners, state);
+    showGameOverOverlay(result.winners, result.lost, state);
   } else {
     startAnimation();
   }

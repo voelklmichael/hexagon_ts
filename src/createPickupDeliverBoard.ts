@@ -99,7 +99,7 @@ export function createPickupDeliverBoard(
     .map(c => c.position);
 
   const totalPlayers = 1 + options.npcCount;
-  const targetCount = options.npcCount + options.anyTargetCount;
+  const targetCount = (options.activePlayerHasTarget ? 1 : 0) + options.npcCount + options.anyTargetCount;
   if (outerRim.length < totalPlayers + targetCount) {
     throw new Error(
       `Not enough outer-rim connectors (${outerRim.length}) for ${totalPlayers} players and ${targetCount} targets.`,
@@ -132,17 +132,15 @@ export function createPickupDeliverBoard(
 
   // Targets come after the player start positions in the shuffled array
   const targets: PickupDeliverTarget[] = [];
+  let targetSlot = totalPlayers;
+  if (options.activePlayerHasTarget) {
+    targets.push({ position: outerRim[targetSlot++]!, acceptsPlayer: 0 });
+  }
   for (let i = 0; i < options.npcCount; i++) {
-    targets.push({
-      position: outerRim[totalPlayers + i]!,
-      acceptsPlayer: i + 1, // NPC player index
-    });
+    targets.push({ position: outerRim[targetSlot++]!, acceptsPlayer: i + 1 });
   }
   for (let i = 0; i < options.anyTargetCount; i++) {
-    targets.push({
-      position: outerRim[totalPlayers + options.npcCount + i]!,
-      acceptsPlayer: "any",
-    });
+    targets.push({ position: outerRim[targetSlot++]!, acceptsPlayer: "any" });
   }
 
   return { board: { tiles, players, connectors }, targets };
