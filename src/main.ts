@@ -789,7 +789,7 @@ function computeStatistics(board: GameBoard): Statistics {
 
 async function loadLevel(levelNum: number): Promise<void> {
   try {
-    const response = await fetch(`deliviery_levels/level${levelNum}.json`);
+    const response = await fetch(`deliviery_levels/level${String(levelNum).padStart(3, '0')}.json`);
     if (!response.ok) throw new Error(`Level ${levelNum} not found`);
     const stateData = await response.json();
 
