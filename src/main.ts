@@ -810,7 +810,8 @@ function renderDeliveryLevelsView(): void {
 
   let levelsGrid = '<div style="padding: 10px; border-bottom: 1px solid #0f3460;"><div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">';
   for (let i = 1; i <= 15; i++) {
-    levelsGrid += `<div class="level-btn" data-level="${i}" style="background: #0d1b35; border: 1px solid #1a4080; color: #a0b8d0; text-align: center; padding: 6px 0; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.1s;">${i}</div>`;
+    const inactive = i >= 5;
+    levelsGrid += `<div class="level-btn${inactive ? ' level-btn-inactive' : ''}" data-level="${i}" style="background: #0d1b35; border: 1px solid ${inactive ? '#1a2a40' : '#1a4080'}; color: ${inactive ? '#3a5060' : '#a0b8d0'}; text-align: center; padding: 6px 0; border-radius: 4px; font-size: 11px; cursor: ${inactive ? 'default' : 'pointer'}; transition: all 0.1s;">${i}</div>`;
   }
   levelsGrid += '</div></div>';
 
@@ -847,6 +848,7 @@ function renderDeliveryLevelsView(): void {
     </table>`;
 
   view.querySelectorAll(".level-btn").forEach(btn => {
+    if ((btn as HTMLElement).classList.contains("level-btn-inactive")) return;
     btn.addEventListener("click", () => {
       const lv = Number((btn as HTMLElement).dataset.level);
       loadLevel(lv);
@@ -903,8 +905,7 @@ function render(): void {
   renderHandPanel();
   renderStats();
   renderDeliveryLevelsView();
-  const targetPanel = state.options.mode === "pickup_deliver" ? "delivery-levels-view" : "hand-view";
-  switchLeftPanel(targetPanel);
+  switchLeftPanel("hand-view");
   switchRightPanel("stats-view");
 }
 
@@ -948,8 +949,7 @@ function restart(): void {
   renderHandPanel();
   renderStats();
   renderDeliveryLevelsView();
-  const targetPanel = state.options.mode === "pickup_deliver" ? "delivery-levels-view" : "hand-view";
-  switchLeftPanel(targetPanel);
+  switchLeftPanel("hand-view");
   switchRightPanel("stats-view");
 }
 

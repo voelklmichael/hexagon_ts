@@ -72,21 +72,17 @@
                 "canTakeActions": true,
                 "position": {
                     "coord": {
-                        "q": -1,
-                        "r": 0
+                        "q": 1,
+                        "r": -1
                     },
-                    "connectorId": 9
+                    "connectorId": 0
                 },
                 "hand": [
                     {
                         "kind": "connector",
                         "connections": [
                             [
-                                11,
-                                10
-                            ],
-                            [
-                                7,
+                                6,
                                 4
                             ],
                             [
@@ -94,45 +90,49 @@
                                 9
                             ],
                             [
+                                10,
+                                7
+                            ],
+                            [
+                                1,
+                                2
+                            ],
+                            [
+                                3,
+                                5
+                            ],
+                            [
+                                0,
+                                11
+                            ]
+                        ]
+                    },
+                    {
+                        "kind": "connector",
+                        "connections": [
+                            [
+                                2,
+                                4
+                            ],
+                            [
                                 5,
                                 6
                             ],
                             [
-                                0,
-                                1
+                                11,
+                                9
                             ],
                             [
-                                3,
-                                2
-                            ]
-                        ]
-                    },
-                    {
-                        "kind": "connector",
-                        "connections": [
-                            [
-                                0,
-                                5
+                                1,
+                                8
                             ],
                             [
-                                8,
-                                1
-                            ],
-                            [
-                                6,
-                                7
-                            ],
-                            [
-                                4,
+                                10,
                                 3
                             ],
                             [
-                                11,
-                                10
-                            ],
-                            [
-                                9,
-                                2
+                                0,
+                                7
                             ]
                         ]
                     },
@@ -141,19 +141,15 @@
                         "connections": [
                             [
                                 3,
-                                11
+                                10
                             ],
                             [
-                                2,
-                                1
+                                1,
+                                5
                             ],
                             [
                                 4,
-                                6
-                            ],
-                            [
-                                0,
-                                5
+                                0
                             ],
                             [
                                 7,
@@ -161,7 +157,11 @@
                             ],
                             [
                                 9,
-                                10
+                                6
+                            ],
+                            [
+                                2,
+                                11
                             ]
                         ]
                     }
@@ -169,10 +169,10 @@
                 "history": {
                     "startPosition": {
                         "coord": {
-                            "q": -1,
-                            "r": 0
+                            "q": 1,
+                            "r": -1
                         },
-                        "connectorId": 9
+                        "connectorId": 0
                     },
                     "turns": []
                 },
@@ -184,19 +184,19 @@
                 "canTakeActions": false,
                 "position": {
                     "coord": {
-                        "q": 0,
-                        "r": -1
+                        "q": 1,
+                        "r": 0
                     },
-                    "connectorId": 9
+                    "connectorId": 2
                 },
                 "hand": [],
                 "history": {
                     "startPosition": {
                         "coord": {
-                            "q": 0,
-                            "r": -1
+                            "q": 1,
+                            "r": 0
                         },
-                        "connectorId": 9
+                        "connectorId": 2
                     },
                     "turns": []
                 },
@@ -974,6 +974,7 @@
             }
         ]
     },
+    "history": [],
     "options": {
         "mode": "pickup_deliver",
         "npcCount": 1,
@@ -983,10 +984,24 @@
         "boardSize": 1,
         "outerConnectors": "All"
     },
-    "seed": 3466947691,
+    "seed": 17,
+    "rng": {
+        "count": 68,
+        "seed": 17
+    },
     "currentPlayer": {
         "playerIndex": 0,
         "selectedTileIndex": null
+    },
+    "statistics": {
+        "totalDistance": {
+            "0": 0,
+            "1": 0
+        },
+        "maxVelocity": {
+            "0": 0,
+            "1": 0
+        }
     },
     "pickupDeliverTargets": [
         {
@@ -995,7 +1010,7 @@
                     "q": -1,
                     "r": 0
                 },
-                "connectorId": 5
+                "connectorId": 6
             },
             "acceptsPlayer": 1
         }
