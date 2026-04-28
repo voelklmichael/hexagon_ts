@@ -463,7 +463,7 @@ export function renderGameState(
         ? mixColors([...historyOwners].map(pi => board.players[pi]!.color))
         : previewOnlyOwners.size > 0
           ? mixColors([...previewOnlyOwners].map(pi => board.players[pi]!.color)) + "aa"
-          : allRimEnds.length === 0 ? "#ffd700" : rimColor;
+          : allRimEnds.length === 0 ? "#ffd700" : targetColor !== null ? targetColor + "66" : rimColor;
 
       for (const arc of arcs) {
         const [cx, cy] = hexToPixel(arc.q, arc.r, HEX_SIZE);

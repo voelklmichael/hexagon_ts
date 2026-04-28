@@ -7,7 +7,7 @@ function tileAt(tiles: GameBoard["tiles"], coord: TileCoord) {
   return tiles.find(e => e.coord.q === coord.q && e.coord.r === coord.r);
 }
 
-function followConnection(tile: ConnectorTile, entry: ConnectorId): ConnectorId | undefined {
+export function followConnection(tile: ConnectorTile, entry: ConnectorId): ConnectorId | undefined {
   for (const [a, b] of tile.connections) {
     if (a === entry) return b;
     if (b === entry) return a;

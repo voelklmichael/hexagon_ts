@@ -1,13 +1,14 @@
 import type { StandardGameOptions } from "./standardGameOptions.js";
 import type { PickupDeliverOptions } from "./pickupDeliverOptions.js";
-import type { GameState, GameBoard, Statistics, ConnectorTile, ConnectorId, TileCoord, PickupDeliverTarget } from "./types.js";
+import type { GameState, GameBoard, Statistics, ConnectorTile, ConnectorId, TileCoord, PickupDeliverTarget, BoardPosition, BoardConnector, PathStep } from "./types.js";
 import { createStandardGameBoard } from "./createGameBoard.js";
 import { createPickupDeliverBoard } from "./createPickupDeliverBoard.js";
 import { renderGameState } from "./renderGameState.js";
 import { Rng } from "./random_number_generator.js";
-import { hexVertices, connectorPosition, randomHexagonTile } from "./hex.js";
-import { playTile } from "./playTile.js";
+import { hexVertices, connectorPosition, randomHexagonTile, hexToPixel, HEX_SIZE } from "./hex.js";
+import { playTile, followConnection } from "./playTile.js";
 import { renderMusicView, initMusicAutoplay } from "./background_music.js";
+import { downloadSvgReplay } from "./exportSvg.js";
 
 const form = document.getElementById("options-form") as HTMLFormElement;
 const renderBtn = document.getElementById("start-new-game-with-options") as HTMLButtonElement;
@@ -48,6 +49,19 @@ function setupBurgerMenu(
     });
   });
 }
+
+const leftNav = document.getElementById("left-panel-nav") as HTMLElement;
+const deliveryItem = document.createElement("div");
+deliveryItem.className = "nav-item";
+deliveryItem.dataset.target = "delivery-levels-view";
+deliveryItem.textContent = "Delivery Levels";
+leftNav.prepend(deliveryItem);
+
+const deliveryView = document.createElement("div");
+deliveryView.id = "delivery-levels-view";
+deliveryView.className = "left-view hidden";
+const refLeftView = document.querySelector(".left-view");
+if (refLeftView?.parentElement) refLeftView.parentElement.prepend(deliveryView);
 
 setupBurgerMenu(
   document.getElementById("left-burger-btn") as HTMLButtonElement,
@@ -196,6 +210,7 @@ undoBtn.addEventListener("click", () => {
   redrawBoard();
   renderHandPanel();
   renderStats();
+  renderDeliveryLevelsView();
 });
 
 redoBtn.addEventListener("click", () => {
@@ -211,6 +226,7 @@ redoBtn.addEventListener("click", () => {
   redrawBoard();
   renderStats();
   renderHandPanel();
+  renderDeliveryLevelsView();
 });
 
 function readOptions(): StandardGameOptions | PickupDeliverOptions {
@@ -483,6 +499,14 @@ function showGameOverOverlay(winners: number[], lost: boolean, state: GameState)
   }
   overlay.appendChild(title);
 
+  const buttonContainer = document.createElement("div");
+  Object.assign(buttonContainer.style, {
+    marginTop: "50px",
+    display: "flex",
+    gap: "20px",
+    justifyContent: "center"
+  });
+
   const btn = document.createElement("button");
   btn.textContent = "NEW GAME";
   Object.assign(btn.style, {
@@ -494,7 +518,21 @@ function showGameOverOverlay(winners: number[], lost: boolean, state: GameState)
     removeGameOverOverlay();
     restart();
   };
-  overlay.appendChild(btn);
+  buttonContainer.appendChild(btn);
+
+  const downloadBtn = document.createElement("button");
+  downloadBtn.textContent = "DOWNLOAD SVG";
+  Object.assign(downloadBtn.style, {
+    padding: "15px 40px", fontSize: "1.2rem", cursor: "pointer",
+    backgroundColor: "#ff9f1c", border: "none", color: "#16213e", borderRadius: "50px", fontWeight: "bold"
+  });
+  downloadBtn.onclick = (e) => {
+    e.stopPropagation();
+    downloadSvgReplay(state, canvas.width, canvas.height);
+  };
+  buttonContainer.appendChild(downloadBtn);
+
+  overlay.appendChild(buttonContainer);
   document.body.appendChild(overlay);
   if (winners.length > 0) startConfetti(overlay);
   {
@@ -507,7 +545,7 @@ function showGameOverOverlay(winners: number[], lost: boolean, state: GameState)
       display: "block", marginTop: "20px", marginBottom: "20px",
       borderRadius: "10px", border: "1px solid rgba(255,255,255,0.15)",
     });
-    overlay.insertBefore(replayCvs, btn);
+    overlay.insertBefore(replayCvs, buttonContainer);
     startReplay(replayCvs, [...state.history, state.board], state);
   }
 }
@@ -624,9 +662,9 @@ function renderHandPanel(): void {
     tileGrid.appendChild(card);
   });
 
-  const aliveCount = board.players.filter(p => p.isAlive).length;
-  if (aliveCount <= 1) {
-    gameStatus.textContent = aliveCount === 1 ? "Game over" : "Draw";
+  const gameOver = checkGameOver(state);
+  if (gameOver.over) {
+    gameStatus.textContent = gameOver.lost ? "Game Over" : (gameOver.winners.length > 0 ? "Winner!" : "Draw");
     playBtn.disabled = true;
   } else {
     gameStatus.textContent = selectedTileIndex === null ? "Select a tile" : "";
@@ -675,6 +713,7 @@ function playSelectedTile(): void {
   persistState();
   renderStats();
   renderHandPanel();
+  renderDeliveryLevelsView();
 
   const result = checkGameOver(state);
   if (result.over) {
@@ -699,9 +738,10 @@ function renderStats(): void {
   const statusText = aliveCount <= 1
     ? (aliveCount === 1 ? "Game over" : "Draw")
     : `${aliveCount} alive`;
-  const winStat = options.mode === "standard" && options.winningCondition === "MaxDistance" ? "dist"
-    : options.mode === "standard" && options.winningCondition === "MaxVelocity" ? "vel"
-      : null;
+  const winStat = options.mode === "standard"
+    ? (options.winningCondition === "MaxDistance" ? "dist"
+      : options.winningCondition === "MaxVelocity" ? "vel" : null)
+    : null;
   const hi = (col: string) => winStat === col ? " class=\"stats-hi\"" : "";
 
   let rows = "";
@@ -745,6 +785,73 @@ function computeStatistics(board: GameBoard): Statistics {
     maxVelocity[pi] = maxV;
   }
   return { totalDistance, maxVelocity };
+}
+
+async function loadLevel(levelNum: number): Promise<void> {
+  try {
+    const response = await fetch(`deliviery_levels/level${levelNum}.json`);
+    if (!response.ok) throw new Error(`Level ${levelNum} not found`);
+    const stateData = await response.json();
+
+    state = stateData;
+    restart();
+    switchLeftPanel("hand-view");
+    switchRightPanel("stats-view");
+    renderDeliveryLevelsView();
+  } catch (e) {
+    console.error("Error loading level:", e);
+    alert(`Could not load level ${levelNum}. Ensure 'levels/level${levelNum}.json' is present in your server's levels directory.`);
+  }
+}
+
+function renderDeliveryLevelsView(): void {
+  const view = document.getElementById("delivery-levels-view");
+  if (!view) return;
+
+  let levelsGrid = '<div style="padding: 10px; border-bottom: 1px solid #0f3460;"><div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">';
+  for (let i = 1; i <= 15; i++) {
+    levelsGrid += `<div class="level-btn" data-level="${i}" style="background: #0d1b35; border: 1px solid #1a4080; color: #a0b8d0; text-align: center; padding: 6px 0; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.1s;">${i}</div>`;
+  }
+  levelsGrid += '</div></div>';
+
+  if (!state) {
+    view.innerHTML = levelsGrid + '<div class="stats-empty">No game in progress.</div>';
+    return;
+  }
+  if (state.options.mode !== "pickup_deliver" || !state.pickupDeliverTargets) {
+    view.innerHTML = levelsGrid + '<div class="stats-empty">Delivery tracking only active in Pickup & Deliver mode.</div>';
+    return;
+  }
+
+  const targets = state.pickupDeliverTargets;
+  let rows = "";
+  targets.forEach((t, i) => {
+    const fulfilled = targetFulfilled(t, state!.board.players);
+    const owner = t.acceptsPlayer === "any" ? "Any" : `P${t.acceptsPlayer + 1}`;
+    const color = t.acceptsPlayer === "any" ? "#fff" : (state!.board.players[t.acceptsPlayer]?.color ?? "#fff");
+
+    rows += `
+      <tr${fulfilled ? ' class="stats-hi"' : ''}>
+        <td><span class="stats-dot" style="background:${color}"></span>Target ${i + 1}</td>
+        <td>${owner}</td>
+        <td style="text-align:right">${fulfilled ? "✅" : "⏳"}</td>
+      </tr>`;
+  });
+
+  view.innerHTML = `
+    ${levelsGrid}
+    <div class="stats-meta">Deliveries: ${targets.filter(t => targetFulfilled(t, state!.board.players)).length} / ${targets.length}</div>
+    <table class="stats-table">
+      <thead><tr><th>Target</th><th>Owner</th><th style="text-align:right">Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  view.querySelectorAll(".level-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const lv = Number((btn as HTMLElement).dataset.level);
+      loadLevel(lv);
+    });
+  });
 }
 
 function render(): void {
@@ -795,7 +902,9 @@ function render(): void {
   redrawBoard();
   renderHandPanel();
   renderStats();
-  switchLeftPanel("hand-view");
+  renderDeliveryLevelsView();
+  const targetPanel = state.options.mode === "pickup_deliver" ? "delivery-levels-view" : "hand-view";
+  switchLeftPanel(targetPanel);
   switchRightPanel("stats-view");
 }
 
@@ -838,7 +947,9 @@ function restart(): void {
   redrawBoard();
   renderHandPanel();
   renderStats();
-  switchLeftPanel("hand-view");
+  renderDeliveryLevelsView();
+  const targetPanel = state.options.mode === "pickup_deliver" ? "delivery-levels-view" : "hand-view";
+  switchLeftPanel(targetPanel);
   switchRightPanel("stats-view");
 }
 
@@ -857,25 +968,22 @@ if (saved) {
     if (!state.statistics) state.statistics = computeStatistics(state.board);
     turn = t;
     emptyHint.style.display = "none";
-    switchLeftPanel("hand-view");
+    const targetPanel = state.options.mode === "pickup_deliver" ? "delivery-levels-view" : "hand-view";
+    switchLeftPanel(targetPanel);
     switchRightPanel("stats-view");
     syncUndoRedo();
     redrawBoard();
     renderHandPanel();
     renderStats();
+    renderDeliveryLevelsView();
     renderMusicView();
   } catch (e) {
     console.error("Failed to restore session:", e);
     localStorage.removeItem(LS_KEY);
-    emptyHint.style.display = "flex";
-    switchLeftPanel("options-view");
-    switchRightPanel("stats-view");
+    loadLevel(3);
   }
 } else {
-  // No saved game: show the welcome screen (empty hint + options)
-  emptyHint.style.display = "flex";
-  switchLeftPanel("options-view");
-  switchRightPanel("stats-view");
+  loadLevel(3);
 }
 
 // Draw after window.load so canvas dimensions are guaranteed to be non-zero.
